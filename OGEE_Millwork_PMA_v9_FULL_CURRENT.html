@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>OGEE Millwork PMA — Version 9 Preview</title>
+<style>
+:root{
+  --bg:#0f141a;--panel:#171e26;--panel2:#202a35;--card:#111820;
+  --text:#f5f7fa;--muted:#9aa7b4;--line:#2c3947;--accent:#d4a24c;
+  --danger:#d85d5d;--warn:#e0b45a;--ok:#5fb67a;--blue:#5e91d7;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+header{
+  position:sticky;top:0;z-index:20;background:rgba(15,20,26,.98);
+  border-bottom:1px solid var(--line);padding:12px 16px;
+}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand h1{font-size:21.6px;letter-spacing:.08em;margin:0}
+.brand .sub{font-size:11.88px;color:var(--muted);margin-top:4px}
+.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.clock{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 10px;text-align:right;min-width:128px}
+.clock .time{font-size:16.2px;font-weight:800;letter-spacing:.03em}
+.clock .date{font-size:9.72px;color:var(--muted);margin-top:2px}
+.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:10px;padding:9px 11px;font-weight:700}
+.btn.primary{background:var(--accent);color:#17130c;border-color:#e0b45a}
+.btn.danger{background:#3b1d1d;border-color:#6d3232;color:#ffb8b8}
+.btn.small{padding:6px 8px;font-size:11.88px}
+.mode-toggle{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.mode-toggle button{border:0;border-radius:0;background:var(--panel);color:var(--muted);padding:8px 10px;font-size:11.88px;font-weight:700}
+.mode-toggle button.active{background:var(--accent);color:#17130c}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 16px 0}
+.metric{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.metric strong{display:block;font-size:19.44px}
+.metric span{font-size:10.8px;color:var(--muted)}
+.toolbar{display:flex;gap:8px;padding:12px 16px 0;overflow:auto}
+.toolbar input,.toolbar select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 10px;min-width:150px}
+.board-wrap{overflow-x:auto;padding:14px 16px 24px;-webkit-overflow-scrolling:touch}
+.board{display:flex;gap:12px;min-width:max-content}
+.column{width:82vw;max-width:330px;min-width:280px;background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.column-head{padding:12px 14px;display:flex;justify-content:space-between;background:var(--panel2);border-bottom:1px solid var(--line)}
+.column-head h2{margin:0;font-size:14.04px;letter-spacing:.08em}
+.count{min-width:24px;text-align:center;color:var(--muted);font-size:11.88px}
+.cards{padding:10px;display:flex;flex-direction:column;gap:10px;min-height:430px}
+.card{background:var(--card);border:1px solid #2b3743;border-left:4px solid var(--warn);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,.15)}
+.card.high{border-left-color:var(--danger)}
+.card.med{border-left-color:var(--warn)}
+.card.low{border-left-color:var(--ok)}
+.card.overdue{box-shadow:0 0 0 1px #7d3434,0 6px 18px rgba(0,0,0,.15)}
+.row{display:flex;justify-content:space-between;gap:8px}
+.row h3{margin:0;font-size:16.2px;line-height:1.25}
+.tag{font-size:9.72px;font-weight:800;border:1px solid currentColor;border-radius:999px;padding:4px 6px;height:max-content}
+.tag.high{color:#ff8585}.tag.med{color:#f0c86c}.tag.low{color:#77d895}
+.meta{font-size:11.88px;color:var(--muted);display:grid;gap:5px;margin-top:9px}
+.meta b{color:#dce3ea}
+.progress{height:6px;background:#26313c;border-radius:999px;overflow:hidden;margin-top:10px}
+.bar{height:100%;background:var(--accent)}
+.note{font-size:11.88px;color:#c5ced8;border-top:1px solid #283440;margin-top:9px;padding-top:8px;line-height:1.45}
+.actions{display:flex;gap:6px;margin-top:10px}
+.more{border:1px dashed #465666;background:#141c24;border-radius:10px;padding:11px;text-align:center;color:#c9d2dc;font-size:11.88px;font-weight:800}
+.empty{padding:18px 8px;text-align:center;color:var(--muted);font-size:12.96px}
+.modalbg{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:flex-end;justify-content:center;z-index:100}
+.modalbg.show{display:flex}
+.modal{width:100%;max-width:580px;background:#151c24;border:1px solid var(--line);border-radius:18px 18px 0 0;padding:16px;max-height:90vh;overflow:auto}
+.modal h3{margin:0 0 14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:grid;gap:6px}
+.field.full{grid-column:1/-1}
+label{font-size:11.88px;color:var(--muted);font-weight:700}
+.field input,.field select,.field textarea{width:100%;background:#0f151c;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px}
+textarea{min-height:88px;resize:vertical}
+.modal-actions{display:flex;justify-content:space-between;gap:8px;margin-top:14px}
+.right-actions{display:flex;gap:8px}
+.tv-only{display:none}
+.auth-status{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:10.8px;color:var(--muted)}
+.auth-dot{width:8px;height:8px;border-radius:50%;background:var(--danger)}
+.auth-status.online .auth-dot{background:var(--ok)}
+.login-panel{display:none;position:fixed;inset:0;background:rgba(5,8,12,.94);z-index:200;align-items:center;justify-content:center;padding:20px}
+.login-panel.show{display:flex}
+.login-box{width:min(430px,100%);background:#151c24;border:1px solid var(--line);border-radius:18px;padding:22px}
+.login-box h2{margin:0 0 6px}.login-box p{color:var(--muted);font-size:12.96px;line-height:1.5}
+.login-box input{width:100%;background:#0f151c;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px;margin-top:9px}
+.login-actions{display:grid;gap:9px;margin-top:14px}
+.sync-error{color:#ff9d9d;font-size:11.88px;margin-top:10px;min-height:16px}
+
+
+/* Phase 2 — Job Details + employee workflow */
+.modal{max-width:860px}
+.details-tabs{display:flex;gap:7px;margin:0 0 14px;border-bottom:1px solid var(--line);padding-bottom:10px;overflow:auto}
+.details-tab{border:1px solid var(--line);background:#111820;color:var(--muted);border-radius:9px;padding:7px 10px;font-size:11.88px;font-weight:800;white-space:nowrap}
+.details-tab.active{background:var(--accent);color:#17130c;border-color:var(--accent)}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.section-title{font-size:11.88px;letter-spacing:.08em;color:#d7dee6;margin:14px 0 9px;padding-top:10px;border-top:1px solid var(--line);font-weight:800}
+.workflow-panel{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:#10171f;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+.workflow-status{font-size:12.96px;font-weight:800}.workflow-status span{color:var(--accent)}
+.workflow-buttons{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.workflow-buttons .start{background:#193824;border-color:#2c7042;color:#9ef1b5}
+.workflow-buttons .block{background:#442821;border-color:#8a4b3b;color:#ffc1ae}
+.workflow-buttons .complete{background:#173247;border-color:#35688d;color:#9bd1f6}
+.blocked-banner{display:none;background:#3d1f1f;border:1px solid #733838;color:#ffc0c0;border-radius:10px;padding:9px 10px;font-size:11.88px;margin:0 0 12px}
+.blocked-banner.show{display:block}
+.task-box{background:#10171f;border:1px solid var(--line);border-radius:12px;padding:10px}
+.task-list{display:grid;gap:7px;margin-bottom:9px}
+.task-row{display:grid;grid-template-columns:auto minmax(180px,1fr) minmax(110px,.55fr) 145px auto;gap:8px;align-items:center;background:#151e27;border:1px solid #263440;border-radius:9px;padding:8px}
+.task-row .task-name,.task-row .task-owner,.task-row .task-due{width:100%;background:#0f151c;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-size:11.88px}
+.task-row .task-due{color-scheme:light;background:#fff;color:#111}
+@media(max-width:720px){.task-row{grid-template-columns:auto 1fr auto}.task-row .task-owner,.task-row .task-due{grid-column:2/3}.task-row .task-delete{grid-column:3/4;grid-row:1}}
+.task-row.done .task-text{text-decoration:line-through;color:#6f7e8d}
+.task-row input[type=checkbox]{width:16px;height:16px;accent-color:#d4a24c}
+.task-text{font-size:12.96px;line-height:1.35}
+.task-delete{background:transparent;border:0;color:#a7b1bb;font-size:17.28px;padding:2px 5px}
+.task-add{display:grid;grid-template-columns:1fr auto;gap:7px}.task-add input{background:#0f151c;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:9px}
+.readiness{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.ready-card{background:#111820;border:1px solid var(--line);border-radius:10px;padding:9px}
+.ready-card b{display:block;font-size:10.8px;color:var(--muted);margin-bottom:4px}.ready-card span{font-size:12.96px;font-weight:800}
+.status-pill{display:inline-block;border-radius:999px;border:1px solid #52606e;padding:3px 6px;font-size:8.64px;font-weight:900;margin-left:5px;vertical-align:1px;color:#bcc8d4}
+.status-pill.blocked{border-color:#924949;color:#ff9696}.status-pill.progress{border-color:#427193;color:#8ec8ef}.status-pill.complete{border-color:#408254;color:#8ee4a6}.status-pill.ready{border-color:#8d6c31;color:#ebc66f}
+.link-row{display:grid;grid-template-columns:1fr auto;gap:7px}.link-open{align-self:end}
+.details-hint{font-size:10.8px;color:var(--muted);margin-top:7px;line-height:1.45}
+
+.date-control{display:grid;grid-template-columns:1fr auto;gap:7px;align-items:center}
+.date-control input[type=date]{min-width:0;color-scheme:light;background:#fff;color:#111;border-color:#d2d7dd}
+.date-control input[type=date]::-webkit-calendar-picker-indicator{opacity:1;cursor:pointer}
+.calendar-btn{height:100%;min-width:44px;padding:0 10px;font-size:17.28px;line-height:1;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px}
+.calendar-btn:hover{border-color:var(--accent)}
+@media(max-width:700px){.workflow-panel{grid-template-columns:1fr}.workflow-buttons{justify-content:flex-start}.readiness{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.modal{max-height:94vh}}
+
+body.tv-mode .toolbar{display:none}
+body.tv-mode .summary{padding-top:10px}
+body.tv-mode .column{width:calc((100vw - 68px)/4);min-width:260px;max-width:none}
+body.tv-mode .board-wrap{padding-top:10px}
+body.tv-mode .cards{min-height:calc(100vh - 205px)}
+body.tv-mode .card{padding:10px}
+body.tv-mode .note{display:none}
+body.tv-mode .actions{display:none}
+body.tv-mode .progress{margin-top:7px}
+body.tv-mode .tv-only{display:block}
+body.tv-mode .management-only{display:none}
+
+@media(min-width:900px){
+  body:not(.tv-mode) .column{width:300px}
+  .modalbg{align-items:center}.modal{border-radius:18px}
+}
+@media(max-width:900px){
+  .summary{grid-template-columns:repeat(2,1fr)}
+  .header-right{gap:6px}.clock{min-width:110px}
+}
+
+/* v9 standalone preview polish */
+.task-row.done .task-name{text-decoration:line-through;color:#758493}
+.task-row.done .task-owner{color:#758493}
+.auth-status.online{color:#b9e7c7;border-color:#315f40;background:#14251a}
+.preview-note{font-size:10.8px;color:var(--muted);padding:0 16px 2px}
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <div class="brand">
+      <h1>OGEE MILLWORK</h1>
+      <div class="sub">SHOP PRODUCTION COMMAND BOARD</div>
+    </div>
+
+    <div class="header-right">
+      <div class="clock">
+        <div class="time" id="clockTime">--:-- --</div>
+        <div class="date" id="clockDate">---</div>
+      </div>
+
+      <div class="mode-toggle">
+        <button id="managementMode" class="active" type="button">MANAGEMENT</button>
+        <button id="tvMode" type="button">SHOP TV</button>
+      </div>
+
+      <div class="auth-status online" id="authStatus"><span class="auth-dot"></span><span id="authText">LOCAL PREVIEW • SAVED LOCALLY</span></div>
+      <button class="btn primary" id="addJobButton" type="button">+ Add Job</button>
+    </div>
+  </div>
+</header>
+
+<section class="summary">
+  <div class="metric"><strong id="activeCount">0</strong><span>ACTIVE JOBS</span></div>
+  <div class="metric"><strong id="shopCount">0</strong><span>IN SHOP</span></div>
+  <div class="metric"><strong id="highCount">0</strong><span>HIGH PRIORITY</span></div>
+  <div class="metric"><strong id="dueCount">0</strong><span>DUE SOON</span></div>
+</section>
+
+<div class="toolbar">
+  <input id="searchInput" placeholder="Search jobs...">
+  <select id="priorityFilter">
+    <option value="">All priorities</option>
+    <option value="high">High</option>
+    <option value="med">Medium</option>
+    <option value="low">Low</option>
+  </select>
+  <select id="jobFilter">
+    <option value="">All jobs</option>
+  </select>
+  <select id="ownerFilter">
+    <option value="">All employees</option>
+  </select>
+  <button class="btn" id="resetButton" type="button">Reset Preview Data</button>
+</div>
+
+<div class="preview-note">Standalone v9 preview — no login, no Firebase, no live data. Changes are saved only in this browser.</div>
+<main class="board-wrap">
+  <div id="board" class="board"></div>
+</main>
+<div id="modalBackdrop" class="modalbg">
+  <div class="modal">
+    <h3 id="modalTitle">Add Job</h3>
+
+    <div class="details-tabs">
+      <button class="details-tab active" data-tab="overview" type="button">OVERVIEW</button>
+      <button class="details-tab" data-tab="production" type="button">PRODUCTION</button>
+      <button class="details-tab" data-tab="files" type="button">FILES / QC</button>
+    </div>
+
+    <div id="tab-overview" class="tab-pane active">
+      <div class="grid">
+        <div class="field full"><label>Job / Project</label><input id="jobTitle"></div>
+        <div class="field"><label>Job Number</label><input id="jobNumber" placeholder="e.g. 26-104"></div>
+        <div class="field"><label>Client</label><input id="jobClient"></div>
+        <div class="field full"><label>Project / Site Address</label><input id="jobAddress"></div>
+        <div class="field"><label>Status</label><select id="jobStatus"></select></div>
+        <div class="field"><label>Priority</label>
+          <select id="jobPriority"><option value="high">High</option><option value="med">Medium</option><option value="low">Low</option></select>
+        </div>
+        <div class="field"><label>Assigned To</label><input id="jobOwner"></div>
+        <div class="field"><label>Project Manager</label><input id="jobPM"></div>
+        <div class="field"><label>Due Date</label><div class="date-control"><input id="jobDue" type="date"><button class="calendar-btn" id="jobDueCalendar" type="button" title="Open calendar" aria-label="Open due date calendar">📅</button></div></div>
+        <div class="field"><label>Progress %</label><input id="jobProgress" type="number" min="0" max="100"></div>
+        <div class="field full"><label>Next Action</label><input id="jobNext" placeholder="The one thing that should happen next"></div>
+        <div class="field full"><label>Notes</label><textarea id="jobNotes"></textarea></div>
+      </div>
+    </div>
+
+    <div id="tab-production" class="tab-pane">
+      <div class="workflow-panel">
+        <div>
+          <div class="workflow-status">EMPLOYEE STATUS: <span id="workflowStatusText">NOT STARTED</span></div>
+          <div class="details-hint">Shop workflow is deliberately simple: START → BLOCKED → COMPLETE.</div>
+        </div>
+        <div class="workflow-buttons">
+          <button class="btn small start" id="startWorkButton" type="button">▶ START</button>
+          <button class="btn small block" id="blockedWorkButton" type="button">! BLOCKED</button>
+          <button class="btn small complete" id="completeWorkButton" type="button">✓ COMPLETE</button>
+        </div>
+      </div>
+      <div id="blockedBanner" class="blocked-banner"></div>
+
+      <div class="readiness">
+        <div class="ready-card"><b>MATERIALS</b><span id="materialReadout">NOT SET</span></div>
+        <div class="ready-card"><b>TASKS COMPLETE</b><span id="taskReadout">0 / 0</span></div>
+        <div class="ready-card"><b>WORK STATE</b><span id="stateReadout">NOT STARTED</span></div>
+      </div>
+
+      <div class="grid">
+        <div class="field"><label>Material Readiness</label>
+          <select id="jobMaterialStatus"><option value="not-set">Not Set</option><option value="ordered">Ordered</option><option value="partial">Partial / Missing Items</option><option value="ready">Ready in Shop</option></select>
+        </div>
+        <div class="field"><label>Blocked Reason</label><input id="jobBlockedReason" placeholder="Required when blocked"></div>
+      </div>
+
+      <div class="section-title">SUBTASKS</div>
+      <div class="task-box">
+        <div id="taskList" class="task-list"></div>
+        <div class="task-add"><input id="newTaskInput" placeholder="Add a subtask..."><button class="btn small primary" id="addTaskButton" type="button">+ Subtask</button></div>
+      </div>
+    </div>
+
+    <div id="tab-files" class="tab-pane">
+      <div class="grid">
+        <div class="field full"><label>Drawing / Shop Drawing Link</label><div class="link-row"><input id="jobDrawingLink" placeholder="https://..."><button class="btn small link-open" id="openDrawingButton" type="button">Open</button></div></div>
+        <div class="field full"><label>Dropbox Job Folder</label><div class="link-row"><input id="jobFolderLink" placeholder="Paste Dropbox shared folder link..."><button class="btn small link-open" id="openFolderButton" type="button">📁 Open Dropbox Folder</button></div></div>
+        <div class="field full"><label>QC / Punch Notes</label><textarea id="jobQCNotes" placeholder="Final inspection items, defects, corrections, packing notes..."></textarea></div>
+      </div>
+      <div class="details-hint">The PMA stores only the Dropbox folder link. Drawings, photos and project files remain in Dropbox.</div>
+      <div class="section-title">CHATGPT WORKFLOW</div>
+      <div class="task-box">
+        <div class="details-hint" style="margin:0 0 10px">ChatGPT can review Gmail, summarize correspondence, identify scope and blockers, and prepare a PMA job with subtasks. Direct job creation will use the planned controlled PMA API/MCP connection.</div>
+        <button class="btn primary" id="copyChatGPTButton" type="button">Copy Job Handoff for ChatGPT</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn danger" id="deleteButton" type="button" style="visibility:hidden">Delete</button>
+      <div class="right-actions"><button class="btn" id="cancelButton" type="button">Cancel</button><button class="btn primary" id="saveButton" type="button">Save Job</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+const STORAGE_KEY = "ogeeMillworkPmaV9StandalonePreview_v1";
+const columns=[
+  {id:"backlog",name:"BACKLOG"},
+  {id:"ready",name:"READY"},
+  {id:"production",name:"IN PRODUCTION"},
+  {id:"finishing",name:"FINISHING"},
+  {id:"delivery",name:"READY / DELIVERY"}
+];
+
+const sampleJobs=[
+{title:"Kensington Veterinary Office",status:"backlog",priority:"med",owner:"Andrew",due:"2026-08-31",progress:18,next:"Finalize material package",notes:"Confirm white melamine vs. laminate interior."},
+{title:"Crown Moulding Package",status:"backlog",priority:"low",owner:"Estimating",due:"2026-09-05",progress:10,next:"Confirm scope",notes:"120 LF / supply only."},
+{title:"601 California — Phase 2",status:"ready",priority:"high",owner:"Ricardo",due:"2026-08-28",progress:35,next:"Assemble uppers",notes:"Verify fillers, shelf pins and leveling feet before assembly."},
+{title:"3015 Pacific",status:"ready",priority:"med",owner:"Juan",due:"2026-08-29",progress:28,next:"Vanity 302 assembly",notes:"White Miraluxe material package.",tasks:[
+  {text:"Make closet-rod template",owner:"",due:"",done:false},
+  {text:"Cut scalloping at top of open area",owner:"",due:"",done:false},
+  {text:"Install bumpers below sink",owner:"",due:"",done:false},
+  {text:"Fit farm sink — drain oriented right",owner:"",due:"",done:false},
+  {text:"Order new doors and drawers",owner:"Andrew",due:"",done:false},
+  {text:"Fabricate laundry cabinet",owner:"",due:"",done:false},
+  {text:"Fabricate two 1-1/2-inch cabinet supports / stretchers",owner:"",due:"",done:false},
+  {text:"Check upper shelf depth",owner:"",due:"",done:false},
+  {text:"Install upper cabinet bumpers",owner:"",due:"",done:false},
+  {text:"Make corner cleats",owner:"",due:"",done:false},
+  {text:"Make toe kick for small lower cabinet beside washer / dryer",owner:"",due:"",done:false},
+  {text:"Confirm and fabricate coat-hook pegboard piece",owner:"",due:"",done:false},
+  {text:"Pack for shipping",owner:"",due:"",done:false}
+]},
+{title:"Farallon — Linen",status:"ready",priority:"med",owner:"Unassigned",due:"2026-09-02",progress:15,next:"Casework",notes:"Ready to start."},
+{title:"Reception Desk",status:"ready",priority:"low",owner:"Shop Team",due:"2026-09-04",progress:20,next:"Base cabinet assembly",notes:"Material staged."},
+{title:"Door Package A",status:"ready",priority:"low",owner:"Shop Team",due:"2026-09-06",progress:5,next:"Cut rails and stiles",notes:"Awaiting machine window."},
+{title:"720 Waller",status:"production",priority:"high",owner:"Ricardo",due:"2026-08-27",progress:62,next:"Final trim",notes:"3 floating shelves. Confirm final net lengths before trimming."},
+{title:"720 Conifer",status:"production",priority:"med",owner:"Juan",due:"2026-08-30",progress:50,next:"Notch before wrapping",notes:"Continue drawers."},
+{title:"Pacific Vanity 302",status:"production",priority:"low",owner:"Assembly",due:"2026-08-31",progress:44,next:"Hardware",notes:"Cabinet boxes assembled."},
+{title:"Blue Gloss Cabinet",status:"finishing",priority:"med",owner:"Finish Dept.",due:"2026-08-28",progress:84,next:"QC + wrap",notes:"Inspect gloss face under shop lighting before packing."},
+{title:"601 California — Phase 1",status:"delivery",priority:"low",owner:"Delivery",due:"2026-08-29",progress:100,next:"Load truck",notes:"Foam wrapped. Final hardware check before loading."},
+{title:"Kensington — Uppers",status:"delivery",priority:"med",owner:"Install Team",due:"2026-09-01",progress:95,next:"Install staging",notes:"Verify site protection and hardware bins."},
+{title:"Frances Howell — Custom White Oak Countertop",jobNumber:"1665",client:"Frances Howell",address:"",status:"ready",priority:"med",owner:"Unassigned",pm:"Andrew",due:"",progress:10,next:"Confirm final width/depth measurements, then prepare drawing for approval and proceed with glue-up.",notes:"3/4-inch white oak panel with mitered front edge. Estimate #1665: $705.93 plus tax; payment received. Existing tile around sink approx. 1.25 inches thick. Final scope simplified to solid panel. Confirm sink-opening responsibility/dimensions before fabrication.",materialStatus:"not-set",workflowState:"not-started",blockedReason:"Awaiting final width/depth confirmation",tasks:[
+  {text:"Receive / confirm final width and depth",owner:"Andrew",due:"",done:false},
+  {text:"Prepare simple shop drawing",owner:"",due:"",done:false},
+  {text:"Send drawing to Frances for approval",owner:"Andrew",due:"",done:false},
+  {text:"Confirm sink-opening responsibility / dimensions",owner:"Andrew",due:"",done:false},
+  {text:"Confirm final white-oak material / appearance",owner:"Andrew",due:"",done:false},
+  {text:"Glue up panel",owner:"",due:"",done:false},
+  {text:"Machine 3/4-inch panel",owner:"",due:"",done:false},
+  {text:"Fabricate mitered front edge",owner:"",due:"",done:false},
+  {text:"Final sand / QC",owner:"",due:"",done:false},
+  {text:"Coordinate pickup with Frances / contractor",owner:"Andrew",due:"",done:false}
+],drawingLink:"",folderLink:"",qcNotes:""}
+];
+
+let jobs=[];
+let editingId=null;
+let currentMode="management";
+let draftTasks=[];
+let draftWorkflowState="not-started";
+
+const el=id=>document.getElementById(id);
+const board=el("board");
+const modalBackdrop=el("modalBackdrop");
+
+el("jobStatus").innerHTML=columns.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+
+function esc(v){
+  return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+}
+function newId(){
+  if(window.crypto && typeof crypto.randomUUID==="function") return crypto.randomUUID();
+  return "job-"+Date.now()+"-"+Math.random().toString(36).slice(2,9);
+}
+function normalizeJob(j,i=0){
+  return {
+    id:j.id || `sample-${String(i+1).padStart(2,"0")}`,
+    title:j.title || "",
+    jobNumber:j.jobNumber || "",
+    client:j.client || "",
+    address:j.address || "",
+    status:columns.some(c=>c.id===j.status)?j.status:"backlog",
+    priority:["high","med","low"].includes(j.priority)?j.priority:"med",
+    owner:j.owner || "",
+    pm:j.pm || "",
+    due:j.due || "",
+    progress:Math.max(0,Math.min(100,Number(j.progress)||0)),
+    next:j.next || "",
+    notes:j.notes || "",
+    materialStatus:j.materialStatus || "not-set",
+    workflowState:j.workflowState || "not-started",
+    blockedReason:j.blockedReason || "",
+    tasks:Array.isArray(j.tasks)?j.tasks.map(t=>({
+      text:String(t?.text||""),
+      owner:String(t?.owner||""),
+      due:String(t?.due||""),
+      done:!!t?.done
+    })):[],
+    drawingLink:j.drawingLink || "",
+    folderLink:j.folderLink || "",
+    qcNotes:j.qcNotes || "",
+    updatedAt:j.updatedAt || ""
+  };
+}
+function cloneSamples(){
+  return sampleJobs.map((j,i)=>normalizeJob(JSON.parse(JSON.stringify(j)),i));
+}
+function persist(){
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(jobs));
+    el("authText").textContent="LOCAL PREVIEW • SAVED LOCALLY";
+  }catch(e){
+    el("authText").textContent="LOCAL PREVIEW • SAVE FAILED";
+    console.error(e);
+  }
+}
+function loadJobs(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed=JSON.parse(raw);
+      if(Array.isArray(parsed) && parsed.length){
+        jobs=parsed.map((j,i)=>normalizeJob(j,i));
+        return;
+      }
+    }
+  }catch(e){
+    console.warn("Preview data could not be loaded; using samples.",e);
+  }
+  jobs=cloneSamples();
+  persist();
+}
+function daysUntil(s){
+  if(!s)return null;
+  const n=new Date(); n.setHours(0,0,0,0);
+  return Math.ceil((new Date(s+"T00:00:00")-n)/86400000);
+}
+function rank(j){
+  const d=daysUntil(j.due);
+  let s=0;
+  if(j.workflowState==="blocked")s+=1300;
+  if(d!==null&&d<0)s+=1000;
+  if(d!==null&&d<=1)s+=700;
+  else if(d!==null&&d<=3)s+=400;
+  if(j.priority==="high")s+=300;
+  else if(j.priority==="med")s+=150;
+  return s;
+}
+function wfLabel(v){
+  return ({"not-started":"NOT STARTED","in-progress":"IN PROGRESS","blocked":"BLOCKED","complete":"COMPLETE"})[v]||"NOT STARTED";
+}
+function matLabel(v){
+  return ({"not-set":"NOT SET","ordered":"ORDERED","partial":"PARTIAL","ready":"READY"})[v]||"NOT SET";
+}
+function safeUrl(v){
+  try{
+    const u=new URL(v);
+    return ["http:","https:"].includes(u.protocol)?u.href:"";
+  }catch{return "";}
+}
+function taskStats(tasks){
+  const a=Array.isArray(tasks)?tasks:[];
+  return {done:a.filter(t=>t&&t.done).length,total:a.length};
+}
+function refreshFilterMenus(){
+  const jobSel=el("jobFilter"),ownerSel=el("ownerFilter");
+  const currentJob=jobSel.value,currentOwner=ownerSel.value;
+  const jobNames=[...new Set(jobs.map(j=>(j.title||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const owners=[...new Set(
+    jobs.flatMap(j=>[(j.owner||"").trim(),...(Array.isArray(j.tasks)?j.tasks.map(t=>(t.owner||"").trim()):[])])
+  .filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+
+  jobSel.innerHTML='<option value="">All jobs</option>'+jobNames.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");
+  ownerSel.innerHTML='<option value="">All employees</option>'+owners.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");
+  if(jobNames.includes(currentJob))jobSel.value=currentJob;
+  if(owners.includes(currentOwner))ownerSel.value=currentOwner;
+}
+function render(){
+  refreshFilterMenus();
+  const q=el("searchInput").value.toLowerCase().trim();
+  const pf=el("priorityFilter").value;
+  const jf=el("jobFilter").value;
+  const of=el("ownerFilter").value;
+  board.innerHTML="";
+
+  columns.forEach(col=>{
+    let filtered=jobs
+      .filter(j=>j.status===col.id)
+      .filter(j=>{
+        if(!q)return true;
+        const taskText=Array.isArray(j.tasks)?j.tasks.map(t=>`${t.text||""} ${t.owner||""}`).join(" "):"";
+        return [j.title,j.jobNumber,j.client,j.owner,j.pm,j.next,j.notes,j.blockedReason,taskText]
+          .join(" ").toLowerCase().includes(q);
+      })
+      .filter(j=>!pf||j.priority===pf)
+      .filter(j=>!jf||j.title===jf)
+      .filter(j=>!of||(j.owner||"")===of||(Array.isArray(j.tasks)&&j.tasks.some(t=>(t.owner||"")===of)))
+      .sort((a,b)=>rank(b)-rank(a));
+
+    const total=filtered.length;
+    const visible=currentMode==="tv"?filtered.slice(0,4):filtered;
+    const section=document.createElement("section");
+    section.className="column";
+    section.innerHTML=`<div class="column-head"><h2>${col.name}</h2><span class="count">${total}</span></div><div class="cards"></div>`;
+    const cards=section.querySelector(".cards");
+
+    if(!visible.length)cards.innerHTML='<div class="empty">No jobs</div>';
+
+    visible.forEach(j=>{
+      const d=daysUntil(j.due);
+      const over=d!==null&&d<0&&j.status!=="delivery";
+      const due=j.due?j.due+(over?" • OVERDUE":(d!==null&&d<=3?" • DUE SOON":"")):"";
+      const wf=j.workflowState||"not-started";
+      const tasks=taskStats(j.tasks);
+      const card=document.createElement("article");
+      card.className=`card ${j.priority||"med"}${over?" overdue":""}`;
+
+      const wfPill=wf!=="not-started"
+        ?`<span class="status-pill ${wf==="in-progress"?"progress":wf}">${wfLabel(wf)}</span>`:"";
+      const material=j.materialStatus==="ready"
+        ?'<span class="status-pill ready">MATERIAL READY</span>':"";
+
+      card.innerHTML=
+        `<div class="row"><h3>${esc(j.title)}</h3><span class="tag ${j.priority||"med"}">${String(j.priority||"med").toUpperCase()}</span></div>`+
+        `<div style="margin-top:6px">${wfPill}${material}</div>`+
+        `<div class="meta">`+
+          (j.jobNumber?`<div><b>Job:</b> ${esc(j.jobNumber)}</div>`:"")+
+          (j.owner?`<div><b>Assigned:</b> ${esc(j.owner)}</div>`:"")+
+          (j.next?`<div><b>Next:</b> ${esc(j.next)}</div>`:"")+
+          (tasks.total?`<div><b>Tasks:</b> ${tasks.done}/${tasks.total}</div>`:"")+
+          (due?`<div><b>Due:</b> ${esc(due)}</div>`:"")+
+          (wf==="blocked"&&j.blockedReason?`<div><b>Blocked:</b> ${esc(j.blockedReason)}</div>`:"")+
+        `</div>`+
+        `<div class="progress"><div class="bar" style="width:${Math.max(0,Math.min(100,j.progress||0))}%"></div></div>`+
+        (j.notes?`<div class="note">${esc(j.notes)}</div>`:"")+
+        `<div class="actions management-only">`+
+          `<button class="btn small prevBtn" type="button">←</button>`+
+          `<button class="btn small nextBtn" type="button">→</button>`+
+          `<button class="btn small editBtn" type="button">Details</button>`+
+        `</div>`;
+
+      card.querySelector(".prevBtn").onclick=e=>{e.stopPropagation();moveJob(j.id,-1);};
+      card.querySelector(".nextBtn").onclick=e=>{e.stopPropagation();moveJob(j.id,1);};
+      card.querySelector(".editBtn").onclick=e=>{e.stopPropagation();openEdit(j.id);};
+      card.onclick=()=>openEdit(j.id);
+      cards.appendChild(card);
+    });
+
+    if(currentMode==="tv"&&total>visible.length){
+      const more=document.createElement("div");
+      more.className="more";
+      more.textContent=`+${total-visible.length} MORE ${col.name} JOBS`;
+      more.onclick=()=>setMode("management");
+      cards.appendChild(more);
+    }
+    board.appendChild(section);
+  });
+
+  el("activeCount").textContent=jobs.filter(j=>j.status!=="delivery").length;
+  el("shopCount").textContent=jobs.filter(j=>j.status==="production").length;
+  el("highCount").textContent=jobs.filter(j=>j.priority==="high"&&j.status!=="delivery").length;
+  el("dueCount").textContent=jobs.filter(j=>{
+    const d=daysUntil(j.due);
+    return d!==null&&d>=0&&d<=3&&j.status!=="delivery";
+  }).length;
+}
+function switchTab(name){
+  document.querySelectorAll(".details-tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));
+  document.querySelectorAll(".tab-pane").forEach(p=>p.classList.toggle("active",p.id==="tab-"+name));
+}
+function renderTasks(){
+  const list=el("taskList");
+  list.innerHTML="";
+  if(!draftTasks.length)list.innerHTML='<div class="empty" style="padding:10px">No subtasks yet.</div>';
+
+  draftTasks.forEach((t,i)=>{
+    const row=document.createElement("div");
+    row.className="task-row"+(t.done?" done":"");
+    row.innerHTML=
+      `<input class="task-check" type="checkbox" ${t.done?"checked":""}>`+
+      `<input class="task-name" value="${esc(t.text)}" placeholder="Subtask">`+
+      `<input class="task-owner" value="${esc(t.owner||"")}" placeholder="Employee">`+
+      `<input class="task-due" type="date" value="${esc(t.due||"")}">`+
+      `<button class="task-delete" type="button" title="Delete subtask">×</button>`;
+
+    row.querySelector(".task-check").onchange=e=>{
+      draftTasks[i].done=e.target.checked;
+      renderTasks();
+      updateDetailReadouts();
+    };
+    row.querySelector(".task-name").oninput=e=>{draftTasks[i].text=e.target.value;};
+    row.querySelector(".task-owner").oninput=e=>{draftTasks[i].owner=e.target.value;};
+    row.querySelector(".task-due").onchange=e=>{draftTasks[i].due=e.target.value;};
+    row.querySelector(".task-delete").onclick=()=>{
+      draftTasks.splice(i,1);
+      renderTasks();
+      updateDetailReadouts();
+    };
+    list.appendChild(row);
+  });
+  updateDetailReadouts();
+}
+function updateDetailReadouts(){
+  const st=taskStats(draftTasks);
+  const wf=wfLabel(draftWorkflowState);
+  const mat=matLabel(el("jobMaterialStatus").value);
+  el("workflowStatusText").textContent=wf;
+  el("taskReadout").textContent=`${st.done} / ${st.total}`;
+  el("stateReadout").textContent=wf;
+  el("materialReadout").textContent=mat;
+  const reason=el("jobBlockedReason").value.trim();
+  el("blockedBanner").classList.toggle("show",draftWorkflowState==="blocked");
+  el("blockedBanner").textContent=draftWorkflowState==="blocked"
+    ?`BLOCKED: ${reason||"Reason required before saving."}`:"";
+}
+function clearFields(){
+  ["jobTitle","jobNumber","jobClient","jobAddress","jobOwner","jobPM","jobDue","jobNext","jobNotes",
+   "jobBlockedReason","jobDrawingLink","jobFolderLink","jobQCNotes"].forEach(x=>el(x).value="");
+  el("jobStatus").value="backlog";
+  el("jobPriority").value="med";
+  el("jobProgress").value="0";
+  el("jobMaterialStatus").value="not-set";
+  draftTasks=[];
+  draftWorkflowState="not-started";
+  renderTasks();
+  updateDetailReadouts();
+  switchTab("overview");
+}
+function openNew(){
+  editingId=null;
+  el("modalTitle").textContent="Add Job";
+  clearFields();
+  el("deleteButton").style.visibility="hidden";
+  modalBackdrop.classList.add("show");
+}
+function openEdit(id){
+  const j=jobs.find(x=>x.id===id);
+  if(!j)return;
+  editingId=id;
+  el("modalTitle").textContent=(j.jobNumber?j.jobNumber+" — ":"")+(j.title||"Job Details");
+  el("jobTitle").value=j.title||"";
+  el("jobNumber").value=j.jobNumber||"";
+  el("jobClient").value=j.client||"";
+  el("jobAddress").value=j.address||"";
+  el("jobStatus").value=j.status||"backlog";
+  el("jobPriority").value=j.priority||"med";
+  el("jobOwner").value=j.owner||"";
+  el("jobPM").value=j.pm||"";
+  el("jobDue").value=j.due||"";
+  el("jobProgress").value=j.progress||0;
+  el("jobNext").value=j.next||"";
+  el("jobNotes").value=j.notes||"";
+  el("jobMaterialStatus").value=j.materialStatus||"not-set";
+  el("jobBlockedReason").value=j.blockedReason||"";
+  el("jobDrawingLink").value=j.drawingLink||"";
+  el("jobFolderLink").value=j.folderLink||"";
+  el("jobQCNotes").value=j.qcNotes||"";
+  draftTasks=Array.isArray(j.tasks)?j.tasks.map(t=>({
+    text:String(t.text||""),
+    owner:String(t.owner||""),
+    due:String(t.due||""),
+    done:!!t.done
+  })):[];
+  draftWorkflowState=j.workflowState||"not-started";
+  renderTasks();
+  updateDetailReadouts();
+  el("deleteButton").style.visibility="visible";
+  switchTab("overview");
+  modalBackdrop.classList.add("show");
+}
+function closeModal(){modalBackdrop.classList.remove("show");}
+function moveJob(id,dir){
+  const j=jobs.find(x=>x.id===id);
+  if(!j)return;
+  const i=columns.findIndex(c=>c.id===j.status);
+  const ni=Math.max(0,Math.min(columns.length-1,i+dir));
+  j.status=columns[ni].id;
+  if(j.status==="delivery"&&j.progress<100)j.progress=100;
+  j.updatedAt=new Date().toISOString();
+  persist();
+  render();
+}
+function setMode(mode){
+  currentMode=mode;
+  document.body.classList.toggle("tv-mode",mode==="tv");
+  el("managementMode").classList.toggle("active",mode==="management");
+  el("tvMode").classList.toggle("active",mode==="tv");
+  render();
+}
+function updateClock(){
+  const n=new Date();
+  el("clockTime").textContent=n.toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit"});
+  el("clockDate").textContent=n.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric",year:"numeric"});
+}
+function buildData(){
+  return normalizeJob({
+    id:editingId||newId(),
+    title:el("jobTitle").value.trim(),
+    jobNumber:el("jobNumber").value.trim(),
+    client:el("jobClient").value.trim(),
+    address:el("jobAddress").value.trim(),
+    status:el("jobStatus").value,
+    priority:el("jobPriority").value,
+    owner:el("jobOwner").value.trim(),
+    pm:el("jobPM").value.trim(),
+    due:el("jobDue").value,
+    progress:Number(el("jobProgress").value||0),
+    next:el("jobNext").value.trim(),
+    notes:el("jobNotes").value.trim(),
+    materialStatus:el("jobMaterialStatus").value,
+    workflowState:draftWorkflowState,
+    blockedReason:el("jobBlockedReason").value.trim(),
+    tasks:draftTasks.map(t=>({
+      text:String(t.text||"").trim(),
+      owner:String(t.owner||"").trim(),
+      due:String(t.due||""),
+      done:!!t.done
+    })).filter(t=>t.text),
+    drawingLink:el("jobDrawingLink").value.trim(),
+    folderLink:el("jobFolderLink").value.trim(),
+    qcNotes:el("jobQCNotes").value.trim(),
+    updatedAt:new Date().toISOString()
+  });
+}
+function saveJob(){
+  if(!el("jobTitle").value.trim()){
+    alert("Enter a job name.");
+    switchTab("overview");
+    el("jobTitle").focus();
+    return;
+  }
+  if(draftWorkflowState==="blocked"&&!el("jobBlockedReason").value.trim()){
+    alert("Enter the blocked reason.");
+    switchTab("production");
+    el("jobBlockedReason").focus();
+    return;
+  }
+
+  const data=buildData();
+  if(draftWorkflowState==="complete")data.progress=100;
+
+  if(editingId!==null){
+    const index=jobs.findIndex(j=>j.id===editingId);
+    if(index>=0)jobs[index]=data;
+  }else{
+    jobs.push(data);
+  }
+  persist();
+  render();
+  closeModal();
+}
+function setWorkflow(state){
+  if(state==="blocked"){
+    const existing=el("jobBlockedReason").value.trim();
+    if(!existing){
+      const reason=prompt("Why is this job blocked?");
+      if(reason===null)return;
+      if(!reason.trim()){
+        alert("Blocked reason is required.");
+        return;
+      }
+      el("jobBlockedReason").value=reason.trim();
+    }
+  }else if(state!=="blocked"){
+    el("jobBlockedReason").value="";
+  }
+
+  draftWorkflowState=state;
+  if(state==="in-progress"&&Number(el("jobProgress").value||0)===0)el("jobProgress").value="5";
+  if(state==="complete")el("jobProgress").value="100";
+  updateDetailReadouts();
+
+  // Match the live app behavior: workflow buttons update the existing job immediately.
+  if(editingId!==null){
+    const j=jobs.find(x=>x.id===editingId);
+    if(j){
+      j.workflowState=state;
+      j.blockedReason=el("jobBlockedReason").value.trim();
+      j.progress=Number(el("jobProgress").value||0);
+      j.updatedAt=new Date().toISOString();
+      persist();
+      render();
+    }
+  }
+}
+function openDatePicker(input){
+  if(!input)return;
+  try{
+    if(typeof input.showPicker==="function"){
+      input.showPicker();
+      return;
+    }
+  }catch(e){}
+  input.focus();
+  input.click();
+}
+async function copyChatGPTHandoff(){
+  const st=taskStats(draftTasks);
+  const payload=[
+    "Create or update this OGEE PMA job from the information below:",
+    "Job: "+el("jobTitle").value.trim(),
+    "Job Number: "+el("jobNumber").value.trim(),
+    "Client: "+el("jobClient").value.trim(),
+    "Status: "+el("jobStatus").value,
+    "Priority: "+el("jobPriority").value,
+    "Assigned To: "+el("jobOwner").value.trim(),
+    "PM: "+el("jobPM").value.trim(),
+    "Due: "+el("jobDue").value,
+    "Next Action: "+el("jobNext").value.trim(),
+    "Blocked Reason: "+el("jobBlockedReason").value.trim(),
+    "Dropbox Folder: "+el("jobFolderLink").value.trim(),
+    "Notes: "+el("jobNotes").value.trim(),
+    `Subtasks (${st.done}/${st.total} complete):`,
+    ...draftTasks.map(t=>(t.done?"[x] ":"[ ] ")+t.text+(t.owner?" — "+t.owner:"")+(t.due?" — due "+t.due:""))
+  ].join("\n");
+
+  try{
+    await navigator.clipboard.writeText(payload);
+    alert("Job handoff copied for ChatGPT.");
+  }catch(e){
+    prompt("Copy this job handoff:",payload);
+  }
+}
+
+/* Event wiring */
+document.querySelectorAll(".details-tab").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+el("addJobButton").onclick=openNew;
+el("cancelButton").onclick=closeModal;
+modalBackdrop.onclick=e=>{if(e.target===modalBackdrop)closeModal();};
+el("searchInput").oninput=render;
+el("priorityFilter").onchange=render;
+el("jobFilter").onchange=render;
+el("ownerFilter").onchange=render;
+el("managementMode").onclick=()=>setMode("management");
+el("tvMode").onclick=()=>setMode("tv");
+el("saveButton").onclick=saveJob;
+
+el("deleteButton").onclick=()=>{
+  if(editingId===null)return;
+  const j=jobs.find(x=>x.id===editingId);
+  if(!confirm(`Delete "${j?.title||"this job"}" from this local preview?`))return;
+  jobs=jobs.filter(x=>x.id!==editingId);
+  persist();
+  render();
+  closeModal();
+};
+
+el("resetButton").onclick=()=>{
+  if(!confirm("Reset this LOCAL preview to the included v9 sample jobs? This does not touch Firebase or the live PMA."))return;
+  jobs=cloneSamples();
+  persist();
+  render();
+};
+
+el("addTaskButton").onclick=()=>{
+  const v=el("newTaskInput").value.trim();
+  if(!v)return;
+  draftTasks.push({text:v,owner:"",due:"",done:false});
+  el("newTaskInput").value="";
+  renderTasks();
+};
+el("newTaskInput").onkeydown=e=>{
+  if(e.key==="Enter"){
+    e.preventDefault();
+    el("addTaskButton").click();
+  }
+};
+el("jobMaterialStatus").onchange=updateDetailReadouts;
+el("jobDueCalendar").onclick=()=>openDatePicker(el("jobDue"));
+el("jobBlockedReason").oninput=updateDetailReadouts;
+el("startWorkButton").onclick=()=>setWorkflow("in-progress");
+el("blockedWorkButton").onclick=()=>setWorkflow("blocked");
+el("completeWorkButton").onclick=()=>setWorkflow("complete");
+
+el("openDrawingButton").onclick=()=>{
+  const u=safeUrl(el("jobDrawingLink").value.trim());
+  if(u)window.open(u,"_blank","noopener");
+  else alert("Enter a valid http(s) drawing link first.");
+};
+el("openFolderButton").onclick=()=>{
+  const u=safeUrl(el("jobFolderLink").value.trim());
+  if(u)window.open(u,"_blank","noopener");
+  else alert("Enter a valid http(s) Dropbox folder link first.");
+};
+el("copyChatGPTButton").onclick=copyChatGPTHandoff;
+
+/* Boot */
+loadJobs();
+updateClock();
+setInterval(updateClock,1000);
+renderTasks();
+render();
+
+})();
+</script>
+</body>
+</html>
