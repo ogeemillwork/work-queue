@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BoardData, COLUMNS, Job, Status } from "@/lib/types";
+import { BoardAuth, BoardData, COLUMNS, Job, Status } from "@/lib/types";
 import { cloneDefaults, loadData, saveData } from "@/lib/storage";
+import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
+import ApprovalsDialog from "./ApprovalsDialog";
+import EmployeesDialog from "./EmployeesDialog";
 import JobCard from "./JobCard";
 import JobDialog from "./JobDialog";
 
@@ -54,9 +57,11 @@ function newJob(employees: string[]): Job {
   };
 }
 
-export default function Board() {
+export default function Board({ auth }: { auth: BoardAuth | null }) {
   const [data, setData] = useState<BoardData | null>(null);
   const [dbMode, setDbMode] = useState(false);
+  const [showApprovals, setShowApprovals] = useState(false);
+  const [showEmployees, setShowEmployees] = useState(false);
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [jobFilter, setJobFilter] = useState("");
@@ -67,25 +72,44 @@ export default function Board() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch("/api/jobs");
-        if (res.ok) {
-          const body = await res.json();
-          if (!cancelled) {
-            setDbMode(true);
-            setData({ ...cloneDefaults(), jobs: body.jobs });
+      if (auth) {
+        try {
+          const res = await fetch("/api/jobs", {
+            headers: { Authorization: `Bearer ${auth.token}` },
+          });
+          if (res.status === 401) {
+            auth.signOut();
+            return;
           }
-          return;
+          if (res.ok) {
+            const body = await res.json();
+            let employees = cloneDefaults().employees;
+            try {
+              const sb = getSupabaseBrowser();
+              if (sb) {
+                const { data: emps } = await sb.from("employees").select("name").order("created_at");
+                if (emps) employees = emps.map((e) => e.name);
+              }
+            } catch {
+              // keep the default list if the employees table is unreachable
+            }
+            if (!cancelled) {
+              setDbMode(true);
+              setData({ ...cloneDefaults(), employees, jobs: body.jobs });
+            }
+            return;
+          }
+        } catch {
+          // fall through to localStorage
         }
-      } catch {
-        // fall through to localStorage
       }
       if (!cancelled) setData(loadData());
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth?.token]);
 
   if (!data) return null;
 
@@ -94,11 +118,15 @@ export default function Board() {
     if (!dbMode) saveData(next);
   }
 
+  function authHeaders(): Record<string, string> {
+    return auth ? { Authorization: `Bearer ${auth.token}` } : {};
+  }
+
   function persistJob(job: Job) {
     if (!dbMode) return;
     fetch("/api/jobs", {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify(job),
     }).catch(console.error);
   }
@@ -143,7 +171,11 @@ export default function Board() {
     if (!data) return;
     if (!confirm("Delete this job?")) return;
     update({ ...data, jobs: data.jobs.filter((j) => j.id !== id) });
-    if (dbMode) fetch(`/api/jobs?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(console.error);
+    if (dbMode) {
+      fetch(`/api/jobs?id=${encodeURIComponent(id)}`, { method: "DELETE", headers: authHeaders() }).catch(
+        console.error
+      );
+    }
     setEditing(null);
   }
 
@@ -151,7 +183,7 @@ export default function Board() {
     if (dbMode) {
       if (!confirm("Reset the shared board to the bundled preview data for everyone?")) return;
       try {
-        const res = await fetch("/api/jobs/reset", { method: "POST" });
+        const res = await fetch("/api/jobs/reset", { method: "POST", headers: authHeaders() });
         if (res.ok) {
           const body = await res.json();
           setData((d) => (d ? { ...d, jobs: body.jobs } : d));
@@ -163,6 +195,30 @@ export default function Board() {
     }
     if (!confirm("Reset only this browser's preview data to the bundled defaults?")) return;
     update(cloneDefaults());
+  }
+
+  function addEmployee(name: string) {
+    if (!data || data.employees.includes(name)) return;
+    update({ ...data, employees: [...data.employees, name] });
+    if (dbMode) {
+      getSupabaseBrowser()
+        ?.from("employees")
+        .insert({ name })
+        .then(({ error }) => error && console.error(error));
+    }
+  }
+
+  function removeEmployee(name: string) {
+    if (!data) return;
+    if (!confirm(`Remove ${name} from the employee list?`)) return;
+    update({ ...data, employees: data.employees.filter((e) => e !== name) });
+    if (dbMode) {
+      getSupabaseBrowser()
+        ?.from("employees")
+        .delete()
+        .eq("name", name)
+        .then(({ error }) => error && console.error(error));
+    }
   }
 
   const jobNames = [...data.jobs.map((j) => j.name)].sort();
@@ -197,6 +253,28 @@ export default function Board() {
             >
               Reset Preview Data
             </button>
+            <button
+              className="rounded-lg border border-white/30 bg-white/10 px-[11px] py-2 text-white"
+              onClick={() => setShowEmployees(true)}
+            >
+              Employees
+            </button>
+            {auth?.isAdmin && (
+              <button
+                className="rounded-lg border border-white/30 bg-white/10 px-[11px] py-2 text-white"
+                onClick={() => setShowApprovals(true)}
+              >
+                Approvals
+              </button>
+            )}
+            {auth && (
+              <button
+                className="rounded-lg border border-white/30 bg-white/10 px-[11px] py-2 text-white"
+                onClick={auth.signOut}
+              >
+                Sign out
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -282,6 +360,17 @@ export default function Board() {
           );
         })}
       </main>
+
+      {showApprovals && auth && <ApprovalsDialog selfId={auth.userId} onClose={() => setShowApprovals(false)} />}
+
+      {showEmployees && (
+        <EmployeesDialog
+          employees={data.employees}
+          onAdd={addEmployee}
+          onRemove={removeEmployee}
+          onClose={() => setShowEmployees(false)}
+        />
+      )}
 
       {editing && (
         <JobDialog

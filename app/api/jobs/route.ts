@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabase } from "@/lib/supabase";
+import { supabaseFromRequest } from "@/lib/apiAuth";
 import { Job } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const supabase = getSupabase();
-  if (!supabase) return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+export async function GET(req: NextRequest) {
+  const { supabase, error: guard } = supabaseFromRequest(req);
+  if (guard) return guard;
   const { data, error } = await supabase.from("jobs").select("*").order("created_at");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ jobs: data });
 }
 
 export async function PUT(req: NextRequest) {
-  const supabase = getSupabase();
-  if (!supabase) return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  const { supabase, error: guard } = supabaseFromRequest(req);
+  if (guard) return guard;
   const job: Job = await req.json();
   if (!job?.id || !job.name?.trim()) {
     return NextResponse.json({ error: "Job id and name are required" }, { status: 400 });
@@ -39,8 +39,8 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const supabase = getSupabase();
-  if (!supabase) return NextResponse.json({ error: "Database not configured" }, { status: 503 });
+  const { supabase, error: guard } = supabaseFromRequest(req);
+  if (guard) return guard;
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
   const { error } = await supabase.from("jobs").delete().eq("id", id);

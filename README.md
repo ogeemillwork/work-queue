@@ -27,14 +27,23 @@ Then open http://localhost:3000.
 - START / BLOCKED / COMPLETE workflow buttons
 - Material readiness
 - Subtask employee, due date, and completion tracking
+- Editable employee list (Employees button; shared via the database)
 - Dropbox Job Folder field
 - ChatGPT Job Handoff field
 - Management / Shop TV modes
 - Local browser persistence
 
+## Accounts
+
+Sign-in is Supabase Auth (email + password). Anyone can sign up, but new
+accounts start unapproved and see an "awaiting approval" screen; an admin
+approves them from the Approvals dialog in the top bar. Row Level Security
+limits the `jobs` table to approved accounts. The admin email is auto-approved
+on sign-up (see `supabase/migrations/0002_auth_profiles.sql`).
+
 ## Storage
 
-With `SUPABASE_URL` and `SUPABASE_ANON_KEY` set, the board is shared: jobs live
+With `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` set, the board is shared: jobs live
 in a Supabase Postgres `jobs` table (schema in `supabase/migrations/`) accessed
 through the API routes in `app/api/jobs`, and Reset restores the bundled
 preview data for everyone.
