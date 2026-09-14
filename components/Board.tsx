@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { BoardAuth, BoardData, COLUMNS, Job } from "@/lib/types";
 import { cloneDefaults, loadData, saveData } from "@/lib/storage";
+import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import ApprovalsDialog from "./ApprovalsDialog";
+import EmployeesDialog from "./EmployeesDialog";
 import JobCard from "./JobCard";
 import JobDialog from "./JobDialog";
 
@@ -28,6 +30,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   const [data, setData] = useState<BoardData | null>(null);
   const [dbMode, setDbMode] = useState(false);
   const [showApprovals, setShowApprovals] = useState(false);
+  const [showEmployees, setShowEmployees] = useState(false);
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [jobFilter, setJobFilter] = useState("");
@@ -49,9 +52,19 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           }
           if (res.ok) {
             const body = await res.json();
+            let employees = cloneDefaults().employees;
+            try {
+              const sb = getSupabaseBrowser();
+              if (sb) {
+                const { data: emps } = await sb.from("employees").select("name").order("created_at");
+                if (emps) employees = emps.map((e) => e.name);
+              }
+            } catch {
+              // keep the default list if the employees table is unreachable
+            }
             if (!cancelled) {
               setDbMode(true);
-              setData({ ...cloneDefaults(), jobs: body.jobs });
+              setData({ ...cloneDefaults(), employees, jobs: body.jobs });
             }
             return;
           }
@@ -153,6 +166,30 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
     update(cloneDefaults());
   }
 
+  function addEmployee(name: string) {
+    if (!data || data.employees.includes(name)) return;
+    update({ ...data, employees: [...data.employees, name] });
+    if (dbMode) {
+      getSupabaseBrowser()
+        ?.from("employees")
+        .insert({ name })
+        .then(({ error }) => error && console.error(error));
+    }
+  }
+
+  function removeEmployee(name: string) {
+    if (!data) return;
+    if (!confirm(`Remove ${name} from the employee list?`)) return;
+    update({ ...data, employees: data.employees.filter((e) => e !== name) });
+    if (dbMode) {
+      getSupabaseBrowser()
+        ?.from("employees")
+        .delete()
+        .eq("name", name)
+        .then(({ error }) => error && console.error(error));
+    }
+  }
+
   const jobNames = [...data.jobs.map((j) => j.name)].sort();
 
   return (
@@ -179,6 +216,9 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           </button>
           <button className="rounded-lg border border-line bg-transparent px-[11px] py-2 text-danger" onClick={resetData}>
             Reset Preview Data
+          </button>
+          <button className="rounded-lg border border-line bg-white px-[11px] py-2" onClick={() => setShowEmployees(true)}>
+            Employees
           </button>
           {auth?.isAdmin && (
             <button
@@ -269,6 +309,15 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
       </main>
 
       {showApprovals && auth && <ApprovalsDialog selfId={auth.userId} onClose={() => setShowApprovals(false)} />}
+
+      {showEmployees && (
+        <EmployeesDialog
+          employees={data.employees}
+          onAdd={addEmployee}
+          onRemove={removeEmployee}
+          onClose={() => setShowEmployees(false)}
+        />
+      )}
 
       {editing && (
         <JobDialog

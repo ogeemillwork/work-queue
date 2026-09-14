@@ -27,6 +27,7 @@ Then open http://localhost:3000.
 - START / BLOCKED / COMPLETE workflow buttons
 - Material readiness
 - Subtask employee, due date, and completion tracking
+- Editable employee list (Employees button; shared via the database)
 - Dropbox Job Folder field
 - ChatGPT Job Handoff field
 - Management / Shop TV modes
