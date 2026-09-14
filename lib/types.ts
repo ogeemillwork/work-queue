@@ -35,3 +35,20 @@ export interface BoardData {
 }
 
 export const COLUMNS: Status[] = ["Queued", "In Progress", "Blocked", "Install", "Complete"];
+
+export interface Profile {
+  id: string;
+  email: string;
+  approved: boolean;
+  is_admin: boolean;
+  created_at?: string;
+}
+
+export interface BoardAuth {
+  token: string;
+  userId: string;
+  email: string;
+  isAdmin: boolean;
+  signOut: () => void;
+}
+
