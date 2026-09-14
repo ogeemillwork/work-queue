@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BoardAuth, BoardData, COLUMNS, Job, Status } from "@/lib/types";
+import { BoardAuth, BoardData, COLUMNS, Job } from "@/lib/types";
 import { cloneDefaults, loadData, saveData } from "@/lib/storage";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import ApprovalsDialog from "./ApprovalsDialog";
@@ -9,15 +9,7 @@ import EmployeesDialog from "./EmployeesDialog";
 import JobCard from "./JobCard";
 import JobDialog from "./JobDialog";
 
-const COLUMN_ACCENT: Record<Status, string> = {
-  Queued: "#8b9299",
-  "In Progress": "#1f5f4a",
-  Blocked: "#c93535",
-  Install: "#e17826",
-  Complete: "#4d78b8",
-};
-
-function Clock({ shopTv }: { shopTv: boolean }) {
+function Clock() {
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -26,15 +18,15 @@ function Clock({ shopTv }: { shopTv: boolean }) {
     return () => clearInterval(timer);
   }, []);
 
-  if (!now) return null;
-
   return (
-    <div className="text-right leading-tight">
-      <div className={`font-bold tabular-nums ${shopTv ? "text-[34px]" : "text-[22px]"}`}>
-        {now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+    <div className="min-w-[128px] rounded-[10px] border border-line bg-panel px-2.5 py-[7px] text-right">
+      <div className="text-[16px] font-extrabold tracking-[.03em] tabular-nums">
+        {now ? now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" }) : "--:-- --"}
       </div>
-      <div className={`text-white/70 ${shopTv ? "text-[15px]" : "text-[12px]"}`}>
-        {now.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })}
+      <div className="mt-0.5 text-[10px] text-muted">
+        {now
+          ? now.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: "numeric" })
+          : "---"}
       </div>
     </div>
   );
@@ -225,43 +217,43 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
 
   return (
     <div>
-      <header className={`flex items-center justify-between gap-3 border-b border-black/20 bg-accent px-[22px] py-[18px] text-white ${shopTv ? "" : "sticky top-0 z-10"}`}>
+      <header className={`flex items-center justify-between gap-3 border-b border-line bg-[rgba(15,20,26,.98)] px-4 py-3 ${shopTv ? "" : "sticky top-0 z-20"}`}>
         <div>
-          <h1 className="text-[22px] font-bold tracking-wide">OGEE Millwork PMA</h1>
-          <p className="mt-[3px] text-[13px] text-white/70">
-            {dbMode ? "Shared shop board" : "Standalone local project manager"}
+          <h1 className="text-[21px] font-bold tracking-[.08em]">OGEE MILLWORK</h1>
+          <p className="mt-1 text-[12px] uppercase tracking-wide text-muted">
+            {dbMode ? "Shared shop board" : "Shop production command board"}
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <Clock shopTv={shopTv} />
+        <div className="flex items-center gap-2">
+          <Clock />
           <div className="flex flex-wrap justify-end gap-2">
             <button
-              className="rounded-lg border border-white/30 bg-white/10 px-[11px] py-2 text-white"
+              className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold"
               onClick={() => setShopTv((v) => !v)}
             >
               {shopTv ? "Management Mode" : "Shop TV Mode"}
             </button>
             <button
-              className="rounded-lg border border-white bg-white px-[11px] py-2 font-semibold text-accent"
+              className="rounded-[10px] border border-warn bg-accent px-[11px] py-2 font-bold text-[#17130c]"
               onClick={() => setEditing({ job: newJob(data.employees), isNew: true })}
             >
               + Add Job
             </button>
             <button
-              className="rounded-lg border border-white/30 bg-transparent px-[11px] py-2 text-[#ffd6d6]"
+              className="rounded-[10px] border border-[#6d3232] bg-[#3b1d1d] px-[11px] py-2 font-bold text-[#ffb8b8]"
               onClick={resetData}
             >
               Reset Preview Data
             </button>
             <button
-              className="rounded-lg border border-white/30 bg-white/10 px-[11px] py-2 text-white"
+              className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold"
               onClick={() => setShowEmployees(true)}
             >
               Employees
             </button>
             {auth?.isAdmin && (
               <button
-                className="rounded-lg border border-white/30 bg-white/10 px-[11px] py-2 text-white"
+                className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold"
                 onClick={() => setShowApprovals(true)}
               >
                 Approvals
@@ -269,7 +261,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
             )}
             {auth && (
               <button
-                className="rounded-lg border border-white/30 bg-white/10 px-[11px] py-2 text-white"
+                className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold"
                 onClick={auth.signOut}
               >
                 Sign out
@@ -283,13 +275,13 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
         <section className="grid grid-cols-2 gap-2.5 p-[14px_18px] min-[901px]:grid-cols-[minmax(220px,1.8fr)_repeat(3,minmax(140px,1fr))]">
           <input
             type="search"
-            className="w-full rounded-lg border border-line bg-white px-2.5 py-[9px]"
+            className="w-full rounded-[10px] border border-line bg-panel px-2.5 py-[9px] text-ink"
             placeholder="Search jobs, clients, notes…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           <select
-            className="w-full rounded-lg border border-line bg-white px-2.5 py-[9px]"
+            className="w-full rounded-[10px] border border-line bg-panel px-2.5 py-[9px] text-ink"
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
           >
@@ -299,7 +291,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
             ))}
           </select>
           <select
-            className="w-full rounded-lg border border-line bg-white px-2.5 py-[9px]"
+            className="w-full rounded-[10px] border border-line bg-panel px-2.5 py-[9px] text-ink"
             value={jobFilter}
             onChange={(e) => setJobFilter(e.target.value)}
           >
@@ -309,7 +301,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
             ))}
           </select>
           <select
-            className="w-full rounded-lg border border-line bg-white px-2.5 py-[9px]"
+            className="w-full rounded-[10px] border border-line bg-panel px-2.5 py-[9px] text-ink"
             value={employeeFilter}
             onChange={(e) => setEmployeeFilter(e.target.value)}
           >
@@ -331,21 +323,11 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
         {COLUMNS.map((status) => {
           const jobs = data.jobs.filter((j) => j.status === status && matches(j));
           return (
-            <section
-              key={status}
-              className="min-h-[520px] rounded-xl border border-[#d1d0ca] border-t-4 bg-[#e8e7e2] p-2.5"
-              style={{ borderTopColor: COLUMN_ACCENT[status] }}
-            >
-              <h2 className="mx-1 mb-2.5 mt-0.5 flex items-center justify-between text-sm font-bold">
-                <span style={{ color: COLUMN_ACCENT[status] }}>{status}</span>{" "}
-                <span
-                  className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
-                  style={{ backgroundColor: COLUMN_ACCENT[status] }}
-                >
-                  {jobs.length}
-                </span>
+            <section key={status} className="overflow-hidden rounded-2xl border border-line bg-panel">
+              <h2 className="flex items-center justify-between border-b border-line bg-panel2 px-3.5 py-3 text-[14px] font-bold uppercase tracking-[.08em]">
+                {status} <span className="min-w-[24px] text-center text-[12px] font-normal text-muted">{jobs.length}</span>
               </h2>
-              <div>
+              <div className="min-h-[480px] p-2.5">
                 {jobs.map((j) => (
                   <JobCard
                     key={j.id}

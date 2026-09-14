@@ -34,8 +34,8 @@ export default function ApprovalsDialog({ selfId, onClose }: { selfId: string; o
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4" onMouseDown={onClose}>
-      <div className="w-full max-w-[560px] rounded-[14px] bg-white p-[18px] shadow-dialog" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4" onMouseDown={onClose}>
+      <div className="w-full max-w-[560px] rounded-[18px] border border-line bg-[#151c24] p-[18px] shadow-dialog" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-2xl font-bold">Approvals</h2>
@@ -46,13 +46,13 @@ export default function ApprovalsDialog({ selfId, onClose }: { selfId: string; o
           </button>
         </div>
 
-        {error && <p className="mt-3 text-[13px] text-danger">{error}</p>}
+        {error && <p className="mt-3 text-[13px] text-[#ff9d9d]">{error}</p>}
 
         <div className="mt-4">
           {profiles === null && <p className="text-[13px] text-muted">Loading…</p>}
           {profiles?.length === 0 && <p className="text-[13px] text-muted">No accounts yet.</p>}
           {profiles?.map((p) => (
-            <div key={p.id} className="flex items-center justify-between gap-2 border-b border-[#eee] py-[9px]">
+            <div key={p.id} className="flex items-center justify-between gap-2 border-b border-line py-[9px]">
               <div className="min-w-0">
                 <div className="truncate text-[14px] [font-weight:650]">{p.email || p.id}</div>
                 <div className="text-xs text-muted">
@@ -60,21 +60,21 @@ export default function ApprovalsDialog({ selfId, onClose }: { selfId: string; o
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
-                {p.is_admin && <span className="rounded-full bg-[#dde8f6] px-[7px] py-[3px] text-[11px]">Admin</span>}
-                <span className={`rounded-full px-[7px] py-[3px] text-[11px] ${p.approved ? "bg-[#def0df]" : "bg-[#f9e4d0]"}`}>
+                {p.is_admin && <span className="rounded-full border border-[#427193] px-[7px] py-[3px] text-[11px] font-bold text-[#8ec8ef]">Admin</span>}
+                <span className={`rounded-full border px-[7px] py-[3px] text-[11px] font-bold ${p.approved ? "border-[#408254] text-[#8ee4a6]" : "border-[#8d6c31] text-[#ebc66f]"}`}>
                   {p.approved ? "Approved" : "Pending"}
                 </span>
                 {p.id !== selfId &&
                   (p.approved ? (
                     <button
-                      className="rounded-lg border border-line bg-transparent px-2 py-[5px] text-xs text-danger"
+                      className="rounded-[10px] border border-[#6d3232] bg-[#3b1d1d] px-2 py-[5px] text-xs font-bold text-[#ffb8b8]"
                       onClick={() => setApproved(p, false)}
                     >
                       Revoke
                     </button>
                   ) : (
                     <button
-                      className="rounded-lg border border-accent bg-accent px-2 py-[5px] text-xs text-white"
+                      className="rounded-[10px] border border-warn bg-accent px-2 py-[5px] text-xs font-bold text-[#17130c]"
                       onClick={() => setApproved(p, true)}
                     >
                       Approve

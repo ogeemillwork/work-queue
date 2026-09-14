@@ -53,14 +53,14 @@ export default function AuthGate() {
   if (!profile?.approved) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="w-full max-w-[420px] rounded-[14px] bg-white p-6 text-center shadow-card">
-          <h1 className="text-[22px] font-bold tracking-wide">OGEE Millwork PMA</h1>
+        <div className="w-full max-w-[430px] rounded-[18px] border border-line bg-[#151c24] p-[22px] text-center shadow-dialog">
+          <h1 className="text-[22px] font-bold tracking-[.08em]">OGEE MILLWORK</h1>
           <p className="mt-4 text-[15px]">Your account is awaiting approval.</p>
           <p className="mt-2 text-[13px] text-muted">
             An admin needs to approve <span className="font-semibold">{session.user.email}</span> before
             you can see the board.
           </p>
-          <button className="mt-6 rounded-lg border border-line bg-white px-[11px] py-2" onClick={signOut}>
+          <button className="mt-6 rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold" onClick={signOut}>
             Sign out
           </button>
         </div>

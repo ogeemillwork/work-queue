@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { SupabaseClient } from "@supabase/supabase-js";
 
-const inputCls = "w-full rounded-lg border border-line bg-white px-2.5 py-[9px]";
+const inputCls = "w-full rounded-[10px] border border-line bg-[#0f151c] px-2.5 py-[9px] text-ink";
 
 export default function LoginScreen({ supabase }: { supabase: SupabaseClient }) {
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -36,8 +36,8 @@ export default function LoginScreen({ supabase }: { supabase: SupabaseClient }) 
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <form onSubmit={submit} className="w-full max-w-[420px] rounded-[14px] bg-white p-6 shadow-card">
-        <h1 className="text-center text-[22px] font-bold tracking-wide">OGEE Millwork PMA</h1>
+      <form onSubmit={submit} className="w-full max-w-[430px] rounded-[18px] border border-line bg-[#151c24] p-[22px] shadow-dialog">
+        <h1 className="text-center text-[22px] font-bold tracking-[.08em]">OGEE MILLWORK</h1>
         <p className="mt-[3px] text-center text-[13px] text-muted">
           {mode === "login" ? "Log in to the shop board" : "Sign up — an admin approves new accounts"}
         </p>
@@ -66,13 +66,13 @@ export default function LoginScreen({ supabase }: { supabase: SupabaseClient }) 
           />
         </label>
 
-        {error && <p className="mb-3 text-[13px] text-danger">{error}</p>}
-        {notice && <p className="mb-3 text-[13px] text-accent">{notice}</p>}
+        {error && <p className="mb-3 text-[13px] text-[#ff9d9d]">{error}</p>}
+        {notice && <p className="mb-3 text-[13px] text-[#8ee4a6]">{notice}</p>}
 
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-lg border border-accent bg-accent px-[11px] py-2 text-white disabled:opacity-60"
+          className="w-full rounded-[10px] border border-warn bg-accent px-[11px] py-2 font-bold text-[#17130c] disabled:opacity-60"
         >
           {busy ? "…" : mode === "login" ? "Log in" : "Sign up"}
         </button>
