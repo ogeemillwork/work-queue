@@ -12,12 +12,13 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 const WORKFLOW: { status: Status; label: string; className: string }[] = [
-  { status: "In Progress", label: "START", className: "bg-[#e0f0e7]" },
-  { status: "Blocked", label: "BLOCKED", className: "bg-[#f5dfd6]" },
-  { status: "Complete", label: "COMPLETE", className: "bg-[#dde8f6]" },
+  { status: "In Progress", label: "▶ START", className: "border-[#2c7042] bg-[#193824] text-[#9ef1b5]" },
+  { status: "Blocked", label: "! BLOCKED", className: "border-[#8a4b3b] bg-[#442821] text-[#ffc1ae]" },
+  { status: "Complete", label: "✓ COMPLETE", className: "border-[#35688d] bg-[#173247] text-[#9bd1f6]" },
 ];
 
-const inputCls = "w-full rounded-lg border border-line bg-white px-2.5 py-[9px]";
+const inputCls = "w-full rounded-[10px] border border-line bg-[#0f151c] px-2.5 py-[9px] text-ink";
+const dateCls = "w-full rounded-[10px] border border-[#d2d7dd] bg-white px-2.5 py-[9px] text-[#111] [color-scheme:light]";
 const labelCls = "mb-3 grid gap-[5px] text-[13px] [font-weight:650]";
 
 export default function JobDialog({
@@ -79,9 +80,9 @@ export default function JobDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4" onMouseDown={onClose}>
       <div
-        className="w-full max-w-[850px] rounded-[14px] bg-white p-[18px] shadow-dialog"
+        className="w-full max-w-[850px] rounded-[18px] border border-line bg-[#151c24] p-[18px] shadow-dialog"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between">
@@ -94,11 +95,11 @@ export default function JobDialog({
           </button>
         </div>
 
-        <div className="mb-3.5 mt-[18px] flex gap-1 border-b border-line">
+        <div className="mb-3.5 mt-[18px] flex gap-[7px] border-b border-line pb-2.5">
           {TABS.map((t) => (
             <button
               key={t.id}
-              className={`border-b-[3px] px-3 py-[9px] ${tab === t.id ? "border-accent font-bold" : "border-transparent"}`}
+              className={`rounded-[9px] border px-2.5 py-[7px] text-[12px] font-extrabold ${tab === t.id ? "border-accent bg-accent text-[#17130c]" : "border-line bg-card text-muted"}`}
               onClick={() => setTab(t.id)}
             >
               {t.label}
@@ -143,7 +144,7 @@ export default function JobDialog({
               </label>
               <label className={labelCls}>
                 Due date
-                <input type="date" className={inputCls} value={draft.due} onChange={(e) => set("due", e.target.value)} />
+                <input type="date" className={dateCls} value={draft.due} onChange={(e) => set("due", e.target.value)} />
               </label>
             </div>
             <label className={labelCls}>
@@ -162,7 +163,7 @@ export default function JobDialog({
               {WORKFLOW.map((w) => (
                 <button
                   key={w.status}
-                  className={`rounded-lg border border-line px-[11px] py-2 font-extrabold ${w.className}`}
+                  className={`rounded-[10px] border px-[11px] py-2 text-[12px] font-extrabold ${w.className}`}
                   onClick={() => set("status", w.status)}
                 >
                   {w.label}
@@ -178,9 +179,9 @@ export default function JobDialog({
               {draft.subtasks.map((s, i) => (
                 <div
                   key={s.id}
-                  className="grid grid-cols-[auto_1fr] items-center gap-2 border-b border-[#eee] py-[9px] md:grid-cols-[auto_1fr_150px_135px_auto]"
+                  className="grid grid-cols-[auto_1fr] items-center gap-2 border-b border-line py-[9px] md:grid-cols-[auto_1fr_150px_135px_auto]"
                 >
-                  <input type="checkbox" checked={s.done} onChange={(e) => setSubtask(i, { done: e.target.checked })} />
+                  <input type="checkbox" className="accent-accent" checked={s.done} onChange={(e) => setSubtask(i, { done: e.target.checked })} />
                   <input
                     className={`${inputCls} ${s.done ? "text-muted line-through" : ""}`}
                     value={s.title}
@@ -197,12 +198,12 @@ export default function JobDialog({
                   </select>
                   <input
                     type="date"
-                    className={`${inputCls} md:col-auto col-start-2`}
+                    className={`${dateCls} md:col-auto col-start-2`}
                     value={s.due}
                     onChange={(e) => setSubtask(i, { due: e.target.value })}
                   />
                   <button
-                    className="rounded-lg border border-line bg-white px-[11px] py-2"
+                    className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold"
                     onClick={() => setDraft((d) => ({ ...d, subtasks: d.subtasks.filter((_, si) => si !== i) }))}
                   >
                     ×
@@ -217,8 +218,8 @@ export default function JobDialog({
                   <option key={emp}>{emp}</option>
                 ))}
               </select>
-              <input type="date" className={`${inputCls} col-start-1 md:col-auto`} value={newDue} onChange={(e) => setNewDue(e.target.value)} />
-              <button className="rounded-lg border border-line bg-white px-[11px] py-2" onClick={addSubtask}>
+              <input type="date" className={`${dateCls} col-start-1 md:col-auto`} value={newDue} onChange={(e) => setNewDue(e.target.value)} />
+              <button className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold" onClick={addSubtask}>
                 Add
               </button>
             </div>
@@ -246,15 +247,15 @@ export default function JobDialog({
 
         <div className="mt-[18px] flex gap-2 border-t border-line pt-3.5">
           {!isNew && (
-            <button className="rounded-lg border border-danger bg-danger px-[11px] py-2 text-white" onClick={onDelete}>
+            <button className="rounded-[10px] border border-[#6d3232] bg-[#3b1d1d] px-[11px] py-2 font-bold text-[#ffb8b8]" onClick={onDelete}>
               Delete Job
             </button>
           )}
           <span className="flex-1" />
-          <button className="rounded-lg border border-line bg-white px-[11px] py-2" onClick={onClose}>
+          <button className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold" onClick={onClose}>
             Cancel
           </button>
-          <button className="rounded-lg border border-accent bg-accent px-[11px] py-2 text-white" onClick={save}>
+          <button className="rounded-[10px] border border-warn bg-accent px-[11px] py-2 font-bold text-[#17130c]" onClick={save}>
             Save
           </button>
         </div>

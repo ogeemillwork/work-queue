@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const inputCls = "w-full rounded-lg border border-line bg-white px-2.5 py-[9px]";
+const inputCls = "w-full rounded-[10px] border border-line bg-[#0f151c] px-2.5 py-[9px] text-ink";
 
 export default function EmployeesDialog({
   employees,
@@ -25,8 +25,8 @@ export default function EmployeesDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4" onMouseDown={onClose}>
-      <div className="w-full max-w-[480px] rounded-[14px] bg-white p-[18px] shadow-dialog" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4" onMouseDown={onClose}>
+      <div className="w-full max-w-[480px] rounded-[18px] border border-line bg-[#151c24] p-[18px] shadow-dialog" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-2xl font-bold">Employees</h2>
@@ -40,10 +40,10 @@ export default function EmployeesDialog({
         <div className="mt-4">
           {employees.length === 0 && <p className="text-[13px] text-muted">No employees yet — add one below.</p>}
           {employees.map((name) => (
-            <div key={name} className="flex items-center justify-between gap-2 border-b border-[#eee] py-[9px]">
+            <div key={name} className="flex items-center justify-between gap-2 border-b border-line py-[9px]">
               <div className="truncate text-[14px] [font-weight:650]">{name}</div>
               <button
-                className="rounded-lg border border-line bg-white px-[11px] py-[5px] text-xs"
+                className="rounded-[10px] border border-line bg-panel2 px-[11px] py-[5px] text-xs font-bold"
                 aria-label={`Remove ${name}`}
                 onClick={() => onRemove(name)}
               >
@@ -66,7 +66,7 @@ export default function EmployeesDialog({
               }
             }}
           />
-          <button className="rounded-lg border border-line bg-white px-[11px] py-2" onClick={add}>
+          <button className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold" onClick={add}>
             Add
           </button>
         </div>

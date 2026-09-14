@@ -3,16 +3,23 @@
 import { Job, Priority } from "@/lib/types";
 
 const PRIORITY_BORDER: Record<Priority, string> = {
-  Urgent: "border-l-[#c93535]",
-  High: "border-l-[#e17826]",
-  Normal: "border-l-[#4d78b8]",
-  Low: "border-l-[#8b9299]",
+  Urgent: "border-l-danger",
+  High: "border-l-warn",
+  Normal: "border-l-info",
+  Low: "border-l-ok",
 };
 
-const MATERIALS_BG: Record<string, string> = {
-  Ready: "bg-[#def0df]",
-  Partial: "bg-[#f4edc9]",
-  Waiting: "bg-[#f9e4d0]",
+const PRIORITY_TAG: Record<Priority, string> = {
+  Urgent: "text-[#ff8585]",
+  High: "text-[#f0c86c]",
+  Normal: "text-[#8ec8ef]",
+  Low: "text-[#77d895]",
+};
+
+const MATERIALS_PILL: Record<string, string> = {
+  Ready: "border-[#408254] text-[#8ee4a6]",
+  Partial: "border-[#8d6c31] text-[#ebc66f]",
+  Waiting: "border-[#924949] text-[#ff9696]",
 };
 
 export default function JobCard({
@@ -31,39 +38,49 @@ export default function JobCard({
 
   return (
     <article
-      className={`mb-2.5 rounded-[10px] border-l-[5px] bg-white shadow-card ${PRIORITY_BORDER[job.priority]} ${shopTv ? "p-4" : "p-[11px]"}`}
+      className={`mb-2.5 rounded-xl border border-[#2b3743] border-l-4 bg-card shadow-card ${PRIORITY_BORDER[job.priority]} ${shopTv ? "p-4" : "p-3"}`}
       onDoubleClick={onOpen}
     >
       <div className="flex justify-between gap-2">
         <div>
-          <div className="[font-weight:750]">{job.name}</div>
+          <div className="font-bold leading-tight">{job.name}</div>
           <div className="mt-0.5 text-[13px] text-muted">{job.client}</div>
         </div>
-        <span className="h-fit rounded-full bg-[#efefec] px-[7px] py-[3px] text-[11px]">{job.priority}</span>
+        <span
+          className={`h-fit rounded-full border border-current px-[6px] py-[3px] text-[10px] font-extrabold ${PRIORITY_TAG[job.priority]}`}
+        >
+          {job.priority}
+        </span>
       </div>
       <div className="mb-[7px] mt-[9px] flex flex-wrap gap-[5px]">
-        <span className={`rounded-full px-[7px] py-[3px] text-[11px] ${MATERIALS_BG[job.materials] ?? "bg-[#efefec]"}`}>
+        <span
+          className={`rounded-full border px-[7px] py-[3px] text-[11px] font-bold ${MATERIALS_PILL[job.materials] ?? "border-[#52606e] text-[#bcc8d4]"}`}
+        >
           Materials: {job.materials}
         </span>
         {total > 0 && (
-          <span className="rounded-full bg-[#efefec] px-[7px] py-[3px] text-[11px]">
+          <span className="rounded-full border border-[#52606e] px-[7px] py-[3px] text-[11px] font-bold text-[#bcc8d4]">
             {done}/{total} subtasks
           </span>
         )}
       </div>
       <div className="grid gap-1 text-xs text-muted">
-        <span>Lead: {job.lead || "—"}</span>
-        <span>Due: {job.due || "—"}</span>
+        <span>
+          Lead: <b className="font-bold text-[#dce3ea]">{job.lead || "—"}</b>
+        </span>
+        <span>
+          Due: <b className="font-bold text-[#dce3ea]">{job.due || "—"}</b>
+        </span>
       </div>
       {!shopTv && (
         <div className="mt-2.5 flex flex-wrap gap-1.5">
-          <button className="rounded-lg border border-line bg-white px-2 py-[5px] text-xs" onClick={onOpen}>
+          <button className="rounded-[10px] border border-line bg-panel2 px-2 py-[5px] text-xs font-bold" onClick={onOpen}>
             Details
           </button>
-          <button className="rounded-lg border border-line bg-white px-2 py-[5px] text-xs" onClick={() => onMove(-1)}>
+          <button className="rounded-[10px] border border-line bg-panel2 px-2 py-[5px] text-xs font-bold" onClick={() => onMove(-1)}>
             ←
           </button>
-          <button className="rounded-lg border border-line bg-white px-2 py-[5px] text-xs" onClick={() => onMove(1)}>
+          <button className="rounded-[10px] border border-line bg-panel2 px-2 py-[5px] text-xs font-bold" onClick={() => onMove(1)}>
             →
           </button>
         </div>
