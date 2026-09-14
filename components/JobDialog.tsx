@@ -67,6 +67,11 @@ export default function JobDialog({
     setNewDue("");
   }
 
+  // keep a name visible in a select even if it was removed from the employee list
+  function withCurrent(current: string): string[] {
+    return current && !employees.includes(current) ? [current, ...employees] : employees;
+  }
+
   function save() {
     const name = draft.name.trim();
     if (!name) return;
@@ -131,7 +136,7 @@ export default function JobDialog({
               <label className={labelCls}>
                 Lead
                 <select className={inputCls} value={draft.lead} onChange={(e) => set("lead", e.target.value)}>
-                  {employees.map((emp) => (
+                  {withCurrent(draft.lead).map((emp) => (
                     <option key={emp}>{emp}</option>
                   ))}
                 </select>
@@ -186,7 +191,7 @@ export default function JobDialog({
                     value={s.employee}
                     onChange={(e) => setSubtask(i, { employee: e.target.value })}
                   >
-                    {employees.map((emp) => (
+                    {withCurrent(s.employee).map((emp) => (
                       <option key={emp}>{emp}</option>
                     ))}
                   </select>
