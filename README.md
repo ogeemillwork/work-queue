@@ -34,9 +34,14 @@ Then open http://localhost:3000.
 
 ## Storage
 
-Changes are saved in browser `localStorage` under `ogee-pma-v9-local` — the
-same key as the vanilla version, so existing data in your browser carries over.
-The Reset button only restores the bundled preview data in this browser.
+With `SUPABASE_URL` and `SUPABASE_ANON_KEY` set, the board is shared: jobs live
+in a Supabase Postgres `jobs` table (schema in `supabase/migrations/`) accessed
+through the API routes in `app/api/jobs`, and Reset restores the bundled
+preview data for everyone.
+
+Without those env vars the app falls back to the original local-only behavior:
+changes are saved in browser `localStorage` under `ogee-pma-v9-local` (the same
+key as the vanilla version) and Reset only affects that browser.
 
 ## Structure
 

@@ -25,6 +25,7 @@ function newJob(employees: string[]): Job {
 
 export default function Board() {
   const [data, setData] = useState<BoardData | null>(null);
+  const [dbMode, setDbMode] = useState(false);
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [jobFilter, setJobFilter] = useState("");
@@ -33,14 +34,42 @@ export default function Board() {
   const [editing, setEditing] = useState<{ job: Job; isNew: boolean } | null>(null);
 
   useEffect(() => {
-    setData(loadData());
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/jobs");
+        if (res.ok) {
+          const body = await res.json();
+          if (!cancelled) {
+            setDbMode(true);
+            setData({ ...cloneDefaults(), jobs: body.jobs });
+          }
+          return;
+        }
+      } catch {
+        // fall through to localStorage
+      }
+      if (!cancelled) setData(loadData());
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (!data) return null;
 
   function update(next: BoardData) {
     setData(next);
-    saveData(next);
+    if (!dbMode) saveData(next);
+  }
+
+  function persistJob(job: Job) {
+    if (!dbMode) return;
+    fetch("/api/jobs", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(job),
+    }).catch(console.error);
   }
 
   function matches(j: Job) {
@@ -59,19 +88,23 @@ export default function Board() {
 
   function moveJob(id: string, delta: number) {
     if (!data) return;
+    let moved: Job | null = null;
     const jobs = data.jobs.map((j) => {
       if (j.id !== id) return j;
       const i = COLUMNS.indexOf(j.status);
       const ni = Math.max(0, Math.min(COLUMNS.length - 1, i + delta));
-      return { ...j, status: COLUMNS[ni] };
+      moved = { ...j, status: COLUMNS[ni] };
+      return moved;
     });
     update({ ...data, jobs });
+    if (moved) persistJob(moved);
   }
 
   function saveJob(job: Job, isNew: boolean) {
     if (!data) return;
     const jobs = isNew ? [...data.jobs, job] : data.jobs.map((j) => (j.id === job.id ? job : j));
     update({ ...data, jobs });
+    persistJob(job);
     setEditing(null);
   }
 
@@ -79,10 +112,24 @@ export default function Board() {
     if (!data) return;
     if (!confirm("Delete this job?")) return;
     update({ ...data, jobs: data.jobs.filter((j) => j.id !== id) });
+    if (dbMode) fetch(`/api/jobs?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch(console.error);
     setEditing(null);
   }
 
-  function resetData() {
+  async function resetData() {
+    if (dbMode) {
+      if (!confirm("Reset the shared board to the bundled preview data for everyone?")) return;
+      try {
+        const res = await fetch("/api/jobs/reset", { method: "POST" });
+        if (res.ok) {
+          const body = await res.json();
+          setData((d) => (d ? { ...d, jobs: body.jobs } : d));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      return;
+    }
     if (!confirm("Reset only this browser's preview data to the bundled defaults?")) return;
     update(cloneDefaults());
   }
@@ -94,7 +141,9 @@ export default function Board() {
       <header className={`flex items-center justify-between gap-3 border-b border-line bg-white px-[22px] py-[18px] ${shopTv ? "" : "sticky top-0 z-10"}`}>
         <div>
           <h1 className="text-[22px] font-bold tracking-wide">OGEE Millwork PMA</h1>
-          <p className="mt-[3px] text-[13px] text-muted">Standalone local project manager</p>
+          <p className="mt-[3px] text-[13px] text-muted">
+            {dbMode ? "Shared shop board" : "Standalone local project manager"}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
