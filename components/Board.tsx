@@ -1,13 +1,44 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BoardAuth, BoardData, COLUMNS, Job } from "@/lib/types";
+import { BoardAuth, BoardData, COLUMNS, Job, Status } from "@/lib/types";
 import { cloneDefaults, loadData, saveData } from "@/lib/storage";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import ApprovalsDialog from "./ApprovalsDialog";
 import EmployeesDialog from "./EmployeesDialog";
 import JobCard from "./JobCard";
 import JobDialog from "./JobDialog";
+
+const COLUMN_ACCENT: Record<Status, string> = {
+  Queued: "#8b9299",
+  "In Progress": "#1f5f4a",
+  Blocked: "#c93535",
+  Install: "#e17826",
+  Complete: "#4d78b8",
+};
+
+function Clock({ shopTv }: { shopTv: boolean }) {
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setNow(new Date());
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (!now) return null;
+
+  return (
+    <div className="text-right leading-tight">
+      <div className={`font-bold tabular-nums ${shopTv ? "text-[34px]" : "text-[22px]"}`}>
+        {now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+      </div>
+      <div className={`text-white/70 ${shopTv ? "text-[15px]" : "text-[12px]"}`}>
+        {now.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })}
+      </div>
+    </div>
+  );
+}
 
 function newJob(employees: string[]): Job {
   return {
@@ -194,45 +225,57 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
 
   return (
     <div>
-      <header className={`flex items-center justify-between gap-3 border-b border-line bg-white px-[22px] py-[18px] ${shopTv ? "" : "sticky top-0 z-10"}`}>
+      <header className={`flex items-center justify-between gap-3 border-b border-black/20 bg-accent px-[22px] py-[18px] text-white ${shopTv ? "" : "sticky top-0 z-10"}`}>
         <div>
           <h1 className="text-[22px] font-bold tracking-wide">OGEE Millwork PMA</h1>
-          <p className="mt-[3px] text-[13px] text-muted">
+          <p className="mt-[3px] text-[13px] text-white/70">
             {dbMode ? "Shared shop board" : "Standalone local project manager"}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            className="rounded-lg border border-line bg-white px-[11px] py-2"
-            onClick={() => setShopTv((v) => !v)}
-          >
-            {shopTv ? "Management Mode" : "Shop TV Mode"}
-          </button>
-          <button
-            className="rounded-lg border border-accent bg-accent px-[11px] py-2 text-white"
-            onClick={() => setEditing({ job: newJob(data.employees), isNew: true })}
-          >
-            + Add Job
-          </button>
-          <button className="rounded-lg border border-line bg-transparent px-[11px] py-2 text-danger" onClick={resetData}>
-            Reset Preview Data
-          </button>
-          <button className="rounded-lg border border-line bg-white px-[11px] py-2" onClick={() => setShowEmployees(true)}>
-            Employees
-          </button>
-          {auth?.isAdmin && (
+        <div className="flex items-center gap-4">
+          <Clock shopTv={shopTv} />
+          <div className="flex flex-wrap justify-end gap-2">
             <button
-              className="rounded-lg border border-line bg-white px-[11px] py-2"
-              onClick={() => setShowApprovals(true)}
+              className="rounded-lg border border-white/30 bg-white/10 px-[11px] py-2 text-white"
+              onClick={() => setShopTv((v) => !v)}
             >
-              Approvals
+              {shopTv ? "Management Mode" : "Shop TV Mode"}
             </button>
-          )}
-          {auth && (
-            <button className="rounded-lg border border-line bg-white px-[11px] py-2" onClick={auth.signOut}>
-              Sign out
+            <button
+              className="rounded-lg border border-white bg-white px-[11px] py-2 font-semibold text-accent"
+              onClick={() => setEditing({ job: newJob(data.employees), isNew: true })}
+            >
+              + Add Job
             </button>
-          )}
+            <button
+              className="rounded-lg border border-white/30 bg-transparent px-[11px] py-2 text-[#ffd6d6]"
+              onClick={resetData}
+            >
+              Reset Preview Data
+            </button>
+            <button
+              className="rounded-lg border border-white/30 bg-white/10 px-[11px] py-2 text-white"
+              onClick={() => setShowEmployees(true)}
+            >
+              Employees
+            </button>
+            {auth?.isAdmin && (
+              <button
+                className="rounded-lg border border-white/30 bg-white/10 px-[11px] py-2 text-white"
+                onClick={() => setShowApprovals(true)}
+              >
+                Approvals
+              </button>
+            )}
+            {auth && (
+              <button
+                className="rounded-lg border border-white/30 bg-white/10 px-[11px] py-2 text-white"
+                onClick={auth.signOut}
+              >
+                Sign out
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -288,9 +331,19 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
         {COLUMNS.map((status) => {
           const jobs = data.jobs.filter((j) => j.status === status && matches(j));
           return (
-            <section key={status} className="min-h-[520px] rounded-xl border border-[#d1d0ca] bg-[#e8e7e2] p-2.5">
+            <section
+              key={status}
+              className="min-h-[520px] rounded-xl border border-[#d1d0ca] border-t-4 bg-[#e8e7e2] p-2.5"
+              style={{ borderTopColor: COLUMN_ACCENT[status] }}
+            >
               <h2 className="mx-1 mb-2.5 mt-0.5 flex items-center justify-between text-sm font-bold">
-                {status} <span className="font-medium text-muted">{jobs.length}</span>
+                <span style={{ color: COLUMN_ACCENT[status] }}>{status}</span>{" "}
+                <span
+                  className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
+                  style={{ backgroundColor: COLUMN_ACCENT[status] }}
+                >
+                  {jobs.length}
+                </span>
               </h2>
               <div>
                 {jobs.map((j) => (
