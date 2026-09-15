@@ -59,6 +59,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   const [jobFilter, setJobFilter] = useState("");
   const [employeeFilter, setEmployeeFilter] = useState("");
   const [shopTv, setShopTv] = useState(false);
+  const [dbEmails, setDbEmails] = useState(true);
   const [editing, setEditing] = useState<{ job: Job; isNew: boolean } | null>(null);
 
   useEffect(() => {
@@ -76,18 +77,32 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           if (res.ok) {
             const body = await res.json();
             let employees = cloneDefaults().employees;
+            const employeeEmails: Record<string, string> = {};
             try {
               const sb = getSupabaseBrowser();
               if (sb) {
-                const { data: emps } = await sb.from("employees").select("name").order("created_at");
-                if (emps) employees = emps.map((e) => e.name);
+                let emps = null;
+                const withEmail = await sb.from("employees").select("name,email").order("created_at");
+                if (withEmail.error) {
+                  // employees.email column not migrated yet — fall back to names only
+                  if (!cancelled) setDbEmails(false);
+                  emps = (await sb.from("employees").select("name").order("created_at")).data as
+                    | { name: string; email?: string }[]
+                    | null;
+                } else {
+                  emps = withEmail.data;
+                }
+                if (emps) {
+                  employees = emps.map((e) => e.name);
+                  for (const e of emps) if (e.email) employeeEmails[e.name] = e.email;
+                }
               }
             } catch {
               // keep the default list if the employees table is unreachable
             }
             if (!cancelled) {
               setDbMode(true);
-              setData({ ...cloneDefaults(), employees, jobs: body.jobs });
+              setData({ ...cloneDefaults(), employees, employeeEmails, jobs: body.jobs });
             }
             return;
           }
@@ -189,13 +204,29 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
     update(cloneDefaults());
   }
 
-  function addEmployee(name: string) {
+  function addEmployee(name: string, email: string) {
     if (!data || data.employees.includes(name)) return;
-    update({ ...data, employees: [...data.employees, name] });
+    const employeeEmails = email ? { ...data.employeeEmails, [name]: email } : data.employeeEmails;
+    update({ ...data, employees: [...data.employees, name], employeeEmails });
     if (dbMode) {
       getSupabaseBrowser()
         ?.from("employees")
-        .insert({ name })
+        .insert(dbEmails ? { name, email: email || null } : { name })
+        .then(({ error }) => error && console.error(error));
+    }
+  }
+
+  function setEmployeeEmail(name: string, email: string) {
+    if (!data || (data.employeeEmails[name] ?? "") === email) return;
+    const employeeEmails = { ...data.employeeEmails };
+    if (email) employeeEmails[name] = email;
+    else delete employeeEmails[name];
+    update({ ...data, employeeEmails });
+    if (dbMode && dbEmails) {
+      getSupabaseBrowser()
+        ?.from("employees")
+        .update({ email: email || null })
+        .eq("name", name)
         .then(({ error }) => error && console.error(error));
     }
   }
@@ -203,7 +234,9 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   function removeEmployee(name: string) {
     if (!data) return;
     if (!confirm(`Remove ${name} from the employee list?`)) return;
-    update({ ...data, employees: data.employees.filter((e) => e !== name) });
+    const employeeEmails = { ...data.employeeEmails };
+    delete employeeEmails[name];
+    update({ ...data, employees: data.employees.filter((e) => e !== name), employeeEmails });
     if (dbMode) {
       getSupabaseBrowser()
         ?.from("employees")
@@ -367,7 +400,9 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
       {showEmployees && (
         <EmployeesDialog
           employees={data.employees}
+          emails={data.employeeEmails}
           onAdd={addEmployee}
+          onSetEmail={setEmployeeEmail}
           onRemove={removeEmployee}
           onClose={() => setShowEmployees(false)}
         />
