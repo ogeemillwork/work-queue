@@ -60,7 +60,13 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   const [employeeFilter, setEmployeeFilter] = useState("");
   const [shopTv, setShopTv] = useState(false);
   const [dbEmails, setDbEmails] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [viewAsTeam, setViewAsTeam] = useState(false);
   const [editing, setEditing] = useState<{ job: Job; isNew: boolean } | null>(null);
+
+  // What the UI treats as admin: a real admin can flip viewAsTeam on to
+  // preview exactly what non-admins see.
+  const showAdminUi = !!auth?.isAdmin && !viewAsTeam;
 
   useEffect(() => {
     let cancelled = false;
@@ -186,24 +192,6 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
     setEditing(null);
   }
 
-  async function resetData() {
-    if (dbMode) {
-      if (!confirm("Reset the shared board to the bundled preview data for everyone?")) return;
-      try {
-        const res = await fetch("/api/jobs/reset", { method: "POST", headers: authHeaders() });
-        if (res.ok) {
-          const body = await res.json();
-          setData((d) => (d ? { ...d, jobs: body.jobs } : d));
-        }
-      } catch (e) {
-        console.error(e);
-      }
-      return;
-    }
-    if (!confirm("Reset only this browser's preview data to the bundled defaults?")) return;
-    update(cloneDefaults());
-  }
-
   function addEmployee(name: string, email: string) {
     if (!data || data.employees.includes(name)) return;
     const employeeEmails = email ? { ...data.employeeEmails, [name]: email } : data.employeeEmails;
@@ -258,25 +246,6 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="rounded-[10px] border border-line bg-panel px-2.5 py-[7px] text-right">
-            {auth ? (
-              <>
-                <div className="text-[12px] font-bold">{auth.email}</div>
-                <div
-                  className={`mt-0.5 text-[10px] font-extrabold uppercase tracking-[.08em] ${
-                    auth.isAdmin ? "text-accent" : "text-muted"
-                  }`}
-                >
-                  {auth.isAdmin ? "Admin" : "Team member"}
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="text-[12px] font-bold text-muted">Local preview</div>
-                <div className="mt-0.5 text-[10px] uppercase tracking-[.08em] text-muted">Not signed in</div>
-              </>
-            )}
-          </div>
           <Clock />
           <div className="flex flex-wrap justify-end gap-2">
             <button
@@ -291,19 +260,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
             >
               + Add Job
             </button>
-            <button
-              className="rounded-[10px] border border-[#6d3232] bg-[#3b1d1d] px-[11px] py-2 font-bold text-[#ffb8b8]"
-              onClick={resetData}
-            >
-              Reset Preview Data
-            </button>
-            <button
-              className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold"
-              onClick={() => setShowEmployees(true)}
-            >
-              Employees
-            </button>
-            {auth?.isAdmin && (
+{showAdminUi && (
               <button
                 className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold"
                 onClick={() => setShowApprovals(true)}
@@ -311,13 +268,78 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                 Approvals
               </button>
             )}
-            {auth && (
-              <button
-                className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold"
-                onClick={auth.signOut}
-              >
-                Sign out
-              </button>
+          </div>
+          <div className="relative">
+            <button
+              className={`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-panel2 text-[15px] font-extrabold ${
+                showAdminUi ? "border-accent text-accent" : "border-line text-ink"
+              }`}
+              aria-label="Account menu"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              {(auth?.email?.[0] ?? "?").toUpperCase()}
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
+                <div
+                  role="menu"
+                  className="absolute right-0 top-[46px] z-40 w-[260px] rounded-[14px] border border-line bg-[#151c24] p-2 shadow-dialog"
+                >
+                  <div className="border-b border-line px-2.5 pb-2.5 pt-1.5">
+                    <div className="truncate text-[13px] font-bold">{auth ? auth.email : "Local preview"}</div>
+                    <div
+                      className={`mt-0.5 text-[10px] font-extrabold uppercase tracking-[.08em] ${
+                        auth ? (showAdminUi ? "text-accent" : "text-muted") : "text-muted"
+                      }`}
+                    >
+                      {auth ? (showAdminUi ? "Admin" : "Team member") : "Not signed in"}
+                    </div>
+                  </div>
+                  <button
+                    className="mt-1 w-full rounded-[10px] px-2.5 py-2 text-left text-[14px] font-bold hover:bg-panel2"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowEmployees(true);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    Employees
+                  </button>
+                  {auth?.isAdmin && (
+                    <button
+                      className="flex w-full items-center justify-between rounded-[10px] px-2.5 py-2 text-left text-[14px] font-bold hover:bg-panel2"
+                      role="menuitemcheckbox"
+                      aria-checked={viewAsTeam}
+                      onClick={() => setViewAsTeam((v) => !v)}
+                    >
+                      View as team member
+                      <span
+                        className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors ${
+                          viewAsTeam ? "border-warn bg-accent" : "border-line bg-panel"
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-[2px] h-[14px] w-[14px] rounded-full transition-all ${
+                            viewAsTeam ? "left-[18px] bg-[#17130c]" : "left-[2px] bg-muted"
+                          }`}
+                        />
+                      </span>
+                    </button>
+                  )}
+                  {auth && (
+                    <button
+                      className="mt-1 w-full rounded-[10px] border-t border-line px-2.5 pb-2 pt-2.5 text-left text-[14px] font-bold text-[#ffb8b8] hover:bg-panel2"
+                      role="menuitem"
+                      onClick={auth.signOut}
+                    >
+                      Sign out
+                    </button>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </div>
