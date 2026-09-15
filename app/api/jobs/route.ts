@@ -27,7 +27,7 @@ export async function PUT(req: NextRequest) {
     id: job.id,
     name: job.name,
     client: job.client ?? "",
-    priority: job.priority ?? "Normal",
+    priority: job.priority ?? "Medium",
     status: job.status ?? "Queued",
     lead: job.lead ?? "",
     due: job.due ?? "",

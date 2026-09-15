@@ -1,4 +1,4 @@
-export type Priority = "Urgent" | "High" | "Normal" | "Low";
+export type Priority = "Urgent" | "High" | "Medium" | "Low";
 
 export type Status = "Queued" | "In Progress" | "Blocked" | "Install" | "Complete";
 
