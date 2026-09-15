@@ -225,6 +225,25 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="rounded-[10px] border border-line bg-panel px-2.5 py-[7px] text-right">
+            {auth ? (
+              <>
+                <div className="text-[12px] font-bold">{auth.email}</div>
+                <div
+                  className={`mt-0.5 text-[10px] font-extrabold uppercase tracking-[.08em] ${
+                    auth.isAdmin ? "text-accent" : "text-muted"
+                  }`}
+                >
+                  {auth.isAdmin ? "Admin" : "Team member"}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-[12px] font-bold text-muted">Local preview</div>
+                <div className="mt-0.5 text-[10px] uppercase tracking-[.08em] text-muted">Not signed in</div>
+              </>
+            )}
+          </div>
           <Clock />
           <div className="flex flex-wrap justify-end gap-2">
             <button
