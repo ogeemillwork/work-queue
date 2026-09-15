@@ -245,16 +245,6 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
         </div>
         <div className="flex items-center gap-2">
           <Clock />
-          <div className="flex flex-wrap justify-end gap-2">
-            {showAdminUi && (
-              <button
-                className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold"
-                onClick={() => setShowApprovals(true)}
-              >
-                Approvals
-              </button>
-            )}
-          </div>
           <div className="relative">
             <button
               className={`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-panel2 text-[15px] font-extrabold ${
@@ -306,6 +296,18 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                   >
                     Employees
                   </button>
+                  {showAdminUi && auth && (
+                    <button
+                      className="mt-1 w-full rounded-[10px] px-2.5 py-2 text-left text-[14px] font-bold hover:bg-panel2"
+                      role="menuitem"
+                      onClick={() => {
+                        setShowApprovals(true);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      Approvals
+                    </button>
+                  )}
                   {auth?.isAdmin && (
                     <button
                       className="flex w-full items-center justify-between rounded-[10px] px-2.5 py-2 text-left text-[14px] font-bold hover:bg-panel2"
