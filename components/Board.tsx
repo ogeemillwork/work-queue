@@ -365,6 +365,34 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
         </section>
       )}
 
+      {shopTv && (
+        <section className="flex flex-wrap gap-2.5 px-[18px] pt-[14px]">
+          <button
+            className={`rounded-xl border px-[18px] py-[10px] text-[1.05rem] font-bold ${
+              employeeFilter === ""
+                ? "border-warn bg-accent text-[#17130c]"
+                : "border-line bg-panel2 text-ink"
+            }`}
+            onClick={() => setEmployeeFilter("")}
+          >
+            Everyone
+          </button>
+          {data.employees.map((emp) => (
+            <button
+              key={emp}
+              className={`rounded-xl border px-[18px] py-[10px] text-[1.05rem] font-bold ${
+                employeeFilter === emp
+                  ? "border-warn bg-accent text-[#17130c]"
+                  : "border-line bg-panel2 text-ink"
+              }`}
+              onClick={() => setEmployeeFilter((v) => (v === emp ? "" : emp))}
+            >
+              {emp}
+            </button>
+          ))}
+        </section>
+      )}
+
       <main
         className={`grid items-start gap-3.5 overflow-auto px-[18px] pb-[22px] grid-cols-[repeat(2,minmax(260px,1fr))] ${
           shopTv
@@ -385,6 +413,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                     key={j.id}
                     job={j}
                     shopTv={shopTv}
+                    tvEmployee={shopTv ? employeeFilter : ""}
                     onOpen={() => setEditing({ job: j, isNew: false })}
                     onMove={(delta) => moveJob(j.id, delta)}
                   />

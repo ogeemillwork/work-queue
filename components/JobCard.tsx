@@ -25,16 +25,19 @@ const MATERIALS_PILL: Record<string, string> = {
 export default function JobCard({
   job,
   shopTv,
+  tvEmployee = "",
   onOpen,
   onMove,
 }: {
   job: Job;
   shopTv: boolean;
+  tvEmployee?: string;
   onOpen: () => void;
   onMove: (delta: number) => void;
 }) {
   const done = job.subtasks.filter((s) => s.done).length;
   const total = job.subtasks.length;
+  const employeeTasks = tvEmployee ? job.subtasks.filter((s) => s.employee === tvEmployee) : [];
 
   return (
     <article
@@ -72,6 +75,26 @@ export default function JobCard({
           Due: <b className="font-bold text-[#dce3ea]">{job.due || "—"}</b>
         </span>
       </div>
+      {tvEmployee && (job.lead === tvEmployee || employeeTasks.length > 0) && (
+        <div className="mt-2 grid gap-1">
+          {job.lead === tvEmployee && employeeTasks.length === 0 && (
+            <div className="rounded-lg border border-[#2b3743] bg-panel2 px-2 py-[5px] text-[13px] text-[#dce3ea]">
+              Job lead — see full job for details
+            </div>
+          )}
+          {employeeTasks.map((s) => (
+            <div
+              key={s.id}
+              className={`rounded-lg border border-[#2b3743] bg-panel2 px-2 py-[5px] text-[13px] ${
+                s.done ? "text-muted line-through" : "text-[#dce3ea]"
+              }`}
+            >
+              {s.title}
+              {s.due && <span className="ml-1 text-muted">· {s.due}</span>}
+            </div>
+          ))}
+        </div>
+      )}
       {!shopTv && (
         <div className="mt-2.5 flex flex-wrap gap-1.5">
           <button className="rounded-[10px] border border-line bg-panel2 px-2 py-[5px] text-xs font-bold" onClick={onOpen}>
