@@ -61,6 +61,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   const [dbEmails, setDbEmails] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewAsTeam, setViewAsTeam] = useState(false);
+  const [expandedColumn, setExpandedColumn] = useState<Status | null>(null);
   const [editing, setEditing] = useState<{ job: Job; isNew: boolean } | null>(null);
 
   // What the UI treats as admin: a real admin can flip viewAsTeam on to
@@ -386,7 +387,8 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           >
             Everyone
           </button>
-          {data.employees.map((emp) => (
+          {/* "user" is the shared break-room TV account, not a person — keep it out of the whose-tasks buttons */}
+          {data.employees.filter((emp) => emp.toLowerCase() !== "user").map((emp) => (
             <button
               key={emp}
               className={`rounded-xl border px-[18px] py-[10px] text-[1.05rem] font-bold ${
@@ -401,8 +403,14 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           ))}
         </section>
 
-      <main className="grid items-start gap-3.5 overflow-auto px-[18px] pb-[22px] pt-[14px] grid-cols-[repeat(2,minmax(260px,1fr))] min-[901px]:grid-cols-[repeat(4,minmax(270px,1fr))]">
-        {COLUMNS.map((status) => {
+      <main
+        className={`grid items-start gap-3.5 overflow-auto px-[18px] pb-[22px] pt-[14px] ${
+          expandedColumn
+            ? "grid-cols-1"
+            : "grid-cols-[repeat(2,minmax(260px,1fr))] min-[901px]:grid-cols-[repeat(4,minmax(270px,1fr))]"
+        }`}
+      >
+        {(expandedColumn ? [expandedColumn] : COLUMNS).map((status) => {
           const jobs = data.jobs.filter((j) => j.status === status && matches(j));
           return (
             <section
@@ -415,10 +423,22 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                 if (id) moveJobTo(id, status);
               }}
             >
-              <h2 className="flex items-center justify-between border-b border-line bg-panel2 px-3.5 py-3 text-[14px] font-bold uppercase tracking-[.08em]">
-                {status} <span className="min-w-[24px] text-center text-[12px] font-normal text-muted">{jobs.length}</span>
+              <h2
+                className="flex cursor-pointer items-center justify-between border-b border-line bg-panel2 px-3.5 py-3 text-[14px] font-bold uppercase tracking-[.08em]"
+                onClick={() => setExpandedColumn((c) => (c === status ? null : status))}
+              >
+                {status}
+                <span className="min-w-[24px] text-center text-[12px] font-normal text-muted">
+                  {expandedColumn === status ? `${jobs.length} · show all columns` : jobs.length}
+                </span>
               </h2>
-              <div className="min-h-[480px] p-2.5">
+              <div
+                className={
+                  expandedColumn
+                    ? "grid min-h-[480px] items-start gap-x-2.5 p-2.5 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]"
+                    : "min-h-[480px] p-2.5"
+                }
+              >
                 {jobs.map((j) => (
                   <JobCard
                     key={j.id}
