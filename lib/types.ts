@@ -16,6 +16,8 @@ export interface Job {
   id: string;
   name: string;
   client: string;
+  clientPhone?: string;
+  clientEmail?: string;
   priority: Priority;
   status: Status;
   lead: string;
