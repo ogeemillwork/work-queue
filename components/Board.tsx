@@ -5,6 +5,7 @@ import { BoardAuth, BoardData, COLUMNS, Job, Status } from "@/lib/types";
 import { cloneDefaults, loadData, saveData } from "@/lib/storage";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import ApprovalsDialog from "./ApprovalsDialog";
+import ClientsDialog from "./ClientsDialog";
 import EmployeesDialog from "./EmployeesDialog";
 import JobCard from "./JobCard";
 import JobDialog from "./JobDialog";
@@ -56,6 +57,8 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   const [dbMode, setDbMode] = useState(false);
   const [showApprovals, setShowApprovals] = useState(false);
   const [showEmployees, setShowEmployees] = useState(false);
+  const [showClients, setShowClients] = useState(false);
+  const [dbClients, setDbClients] = useState(true);
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [jobFilter, setJobFilter] = useState("");
@@ -108,9 +111,26 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
             } catch {
               // keep the default list if the employees table is unreachable
             }
+            let clients: string[] = Array.from(
+              new Set((body.jobs as Job[]).map((j) => j.client).filter(Boolean))
+            );
+            try {
+              const sb = getSupabaseBrowser();
+              if (sb) {
+                const res2 = await sb.from("clients").select("name").order("created_at");
+                if (res2.error) {
+                  // clients table not migrated yet — derive the list from jobs
+                  if (!cancelled) setDbClients(false);
+                } else if (res2.data) {
+                  clients = Array.from(new Set([...res2.data.map((c) => c.name), ...clients]));
+                }
+              }
+            } catch {
+              // keep the derived list if the clients table is unreachable
+            }
             if (!cancelled) {
               setDbMode(true);
-              setData({ ...cloneDefaults(), employees, employeeEmails, jobs: body.jobs });
+              setData({ ...cloneDefaults(), employees, employeeEmails, clients, jobs: body.jobs });
             }
             return;
           }
@@ -176,9 +196,42 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   function saveJob(job: Job, isNew: boolean) {
     if (!data) return;
     const jobs = isNew ? [...data.jobs, job] : data.jobs.map((j) => (j.id === job.id ? job : j));
-    update({ ...data, jobs });
+    // a newly typed client name joins the shared client list automatically
+    const clients =
+      job.client && !data.clients.includes(job.client) ? [...data.clients, job.client] : data.clients;
+    if (clients !== data.clients && dbMode && dbClients) {
+      getSupabaseBrowser()
+        ?.from("clients")
+        .insert({ name: job.client })
+        .then(({ error }) => error && console.error(error));
+    }
+    update({ ...data, jobs, clients });
     persistJob(job);
     setEditing(null);
+  }
+
+  function addClient(name: string) {
+    if (!data || data.clients.includes(name)) return;
+    update({ ...data, clients: [...data.clients, name] });
+    if (dbMode && dbClients) {
+      getSupabaseBrowser()
+        ?.from("clients")
+        .insert({ name })
+        .then(({ error }) => error && console.error(error));
+    }
+  }
+
+  function removeClient(name: string) {
+    if (!data) return;
+    if (!confirm(`Remove ${name} from the client list?`)) return;
+    update({ ...data, clients: data.clients.filter((c) => c !== name) });
+    if (dbMode && dbClients) {
+      getSupabaseBrowser()
+        ?.from("clients")
+        .delete()
+        .eq("name", name)
+        .then(({ error }) => error && console.error(error));
+    }
   }
 
   function deleteJob(id: string) {
@@ -298,6 +351,16 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                     }}
                   >
                     Employees
+                  </button>
+                  <button
+                    className="mt-1 w-full rounded-[10px] px-2.5 py-2 text-left text-[14px] font-bold hover:bg-panel2"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowClients(true);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    Clients
                   </button>
                   {showAdminUi && auth && (
                     <button
@@ -457,6 +520,10 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
 
       {showApprovals && auth && <ApprovalsDialog selfId={auth.userId} onClose={() => setShowApprovals(false)} />}
 
+      {showClients && (
+        <ClientsDialog clients={data.clients} onAdd={addClient} onRemove={removeClient} onClose={() => setShowClients(false)} />
+      )}
+
       {showEmployees && (
         <EmployeesDialog
           employees={data.employees}
@@ -473,6 +540,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           job={editing.job}
           isNew={editing.isNew}
           canEdit={showAdminUi || !auth}
+          clients={data.clients}
           employees={data.employees}
           priorities={data.priorities}
           statuses={data.statuses}
