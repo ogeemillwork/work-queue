@@ -215,8 +215,8 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
 
   const jobNames = [...data.jobs.map((j) => j.name)].sort();
 
-  const boardContent = (
-    <>
+  return (
+    <div>
       <header className={`flex items-center justify-between gap-3 border-b border-line bg-[rgba(15,20,26,.98)] px-4 py-3 ${shopTv ? "" : "sticky top-0 z-20"}`}>
         <div>
           <h1 className="text-[21px] font-bold tracking-[.08em]">OGEE MILLWORK</h1>
@@ -333,10 +333,10 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
       )}
 
       <main
-        className={`grid items-start gap-3.5 px-[18px] pb-[22px] ${
+        className={`grid items-start gap-3.5 overflow-auto px-[18px] pb-[22px] grid-cols-[repeat(2,minmax(260px,1fr))] ${
           shopTv
-            ? "grid-cols-[repeat(4,1fr)] overflow-hidden pt-[14px] text-[1.1rem]"
-            : "grid-cols-[repeat(2,minmax(260px,1fr))] overflow-auto min-[901px]:grid-cols-[repeat(4,minmax(270px,1fr))]"
+            ? "pt-[14px] text-[1.1rem] min-[901px]:grid-cols-[repeat(4,1fr)]"
+            : "min-[901px]:grid-cols-[repeat(4,minmax(270px,1fr))]"
         }`}
       >
         {COLUMNS.map((status) => {
@@ -361,20 +361,6 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           );
         })}
       </main>
-    </>
-  );
-
-  return (
-    <div>
-      {shopTv ? (
-        // Everything renders at 1/4 size on a 4x-larger canvas, so the whole
-        // board maps exactly onto one screen with no overflow or scrolling.
-        <div className="fixed inset-0 z-10 overflow-hidden bg-canvas">
-          <div className="h-[400%] w-[400%] origin-top-left scale-[.25]">{boardContent}</div>
-        </div>
-      ) : (
-        boardContent
-      )}
 
       {showApprovals && auth && <ApprovalsDialog selfId={auth.userId} onClose={() => setShowApprovals(false)} />}
 
