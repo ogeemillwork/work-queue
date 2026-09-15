@@ -9,7 +9,11 @@ export async function GET(req: NextRequest) {
   if (guard) return guard;
   const { data, error } = await supabase.from("jobs").select("*").order("created_at");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ jobs: data });
+  const jobs = (data ?? []).map((row: Record<string, unknown>) => {
+    const { client_phone, client_email, ...rest } = row;
+    return { ...rest, clientPhone: client_phone ?? "", clientEmail: client_email ?? "" };
+  });
+  return NextResponse.json({ jobs });
 }
 
 export async function PUT(req: NextRequest) {
@@ -19,7 +23,7 @@ export async function PUT(req: NextRequest) {
   if (!job?.id || !job.name?.trim()) {
     return NextResponse.json({ error: "Job id and name are required" }, { status: 400 });
   }
-  const { error } = await supabase.from("jobs").upsert({
+  const row = {
     id: job.id,
     name: job.name,
     client: job.client ?? "",
@@ -33,7 +37,14 @@ export async function PUT(req: NextRequest) {
     handoff: job.handoff ?? "",
     subtasks: job.subtasks ?? [],
     updated_at: new Date().toISOString(),
-  });
+  };
+  let { error } = await supabase
+    .from("jobs")
+    .upsert({ ...row, client_phone: job.clientPhone ?? "", client_email: job.clientEmail ?? "" });
+  if (error && /client_phone|client_email/.test(error.message)) {
+    // contact columns not migrated yet — save the rest of the job
+    ({ error } = await supabase.from("jobs").upsert(row));
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

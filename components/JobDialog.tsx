@@ -79,12 +79,24 @@ export default function JobDialog({
   function save() {
     const name = draft.name.trim();
     if (!name) return;
-    onSave({ ...draft, name, client: draft.client.trim(), notes: draft.notes.trim(), dropbox: draft.dropbox.trim(), handoff: draft.handoff.trim() });
+    onSave({
+      ...draft,
+      name,
+      client: draft.client.trim(),
+      clientPhone: (draft.clientPhone ?? "").trim(),
+      clientEmail: (draft.clientEmail ?? "").trim(),
+      notes: draft.notes.trim(),
+      dropbox: draft.dropbox.trim(),
+      handoff: draft.handoff.trim(),
+    });
   }
 
   if (!editMode) {
-    const info: [string, string][] = [
+    const linkCls = "text-[#8ec8ef] underline";
+    const info: [string, React.ReactNode][] = [
       ["Client", job.client || "—"],
+      ["Client phone", job.clientPhone ? <a key="p" className={linkCls} href={`tel:${job.clientPhone}`}>{job.clientPhone}</a> : "—"],
+      ["Client email", job.clientEmail ? <a key="e" className={linkCls} href={`mailto:${job.clientEmail}`}>{job.clientEmail}</a> : "—"],
       ["Priority", job.priority],
       ["Status", job.status],
       ["Lead", job.lead || "—"],
@@ -221,6 +233,24 @@ export default function JobDialog({
               <label className={labelCls}>
                 Client
                 <input className={inputCls} value={draft.client} onChange={(e) => set("client", e.target.value)} />
+              </label>
+              <label className={labelCls}>
+                Client phone
+                <input
+                  type="tel"
+                  className={inputCls}
+                  value={draft.clientPhone ?? ""}
+                  onChange={(e) => set("clientPhone", e.target.value)}
+                />
+              </label>
+              <label className={labelCls}>
+                Client email
+                <input
+                  type="email"
+                  className={inputCls}
+                  value={draft.clientEmail ?? ""}
+                  onChange={(e) => set("clientEmail", e.target.value)}
+                />
               </label>
               <label className={labelCls}>
                 Priority

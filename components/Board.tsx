@@ -37,6 +37,8 @@ function newJob(employees: string[]): Job {
     id: `job-${Date.now()}`,
     name: "",
     client: "",
+    clientPhone: "",
+    clientEmail: "",
     priority: "Normal",
     status: "Queued",
     lead: employees[0] ?? "",
