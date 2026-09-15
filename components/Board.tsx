@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BoardAuth, BoardData, COLUMNS, Job, Status } from "@/lib/types";
-import { cloneDefaults, loadData, saveData } from "@/lib/storage";
+import { cloneDefaults, loadData, normalizeJobs, saveData } from "@/lib/storage";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import ApprovalsDialog from "./ApprovalsDialog";
 import ClientsDialog from "./ClientsDialog";
@@ -40,7 +40,7 @@ function newJob(employees: string[]): Job {
     client: "",
     clientPhone: "",
     clientEmail: "",
-    priority: "Normal",
+    priority: "Medium",
     status: "Queued",
     lead: employees[0] ?? "",
     due: "",
@@ -130,7 +130,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
             }
             if (!cancelled) {
               setDbMode(true);
-              setData({ ...cloneDefaults(), employees, employeeEmails, clients, jobs: body.jobs });
+              setData({ ...cloneDefaults(), employees, employeeEmails, clients, jobs: normalizeJobs(body.jobs) });
             }
             return;
           }

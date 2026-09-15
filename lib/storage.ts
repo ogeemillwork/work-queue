@@ -8,6 +8,11 @@ export function cloneDefaults(): BoardData {
   return JSON.parse(JSON.stringify(OGEE_DEFAULTS));
 }
 
+// "Normal" priority was renamed to "Medium"; older saved jobs still carry it.
+export function normalizeJobs<T extends { priority: string }>(jobs: T[]): T[] {
+  return jobs.map((j) => (j.priority === "Normal" ? { ...j, priority: "Medium" } : j));
+}
+
 export function loadData(): BoardData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -15,6 +20,8 @@ export function loadData(): BoardData {
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.jobs)) return cloneDefaults();
     const merged: BoardData = { ...cloneDefaults(), ...parsed };
+    merged.jobs = normalizeJobs(merged.jobs);
+    merged.priorities = cloneDefaults().priorities;
     // older saved data has no client list — build it from the jobs
     merged.clients = Array.from(
       new Set([...(merged.clients ?? []), ...merged.jobs.map((j) => j.client).filter(Boolean)])
