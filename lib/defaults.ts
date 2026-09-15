@@ -13,6 +13,7 @@ function subtasks(prefix: string, rows: [string, string, string][], doneBefore =
 export const OGEE_DEFAULTS: BoardData = {
   employees: ["Jack", "Mike", "Alex", "Jose", "Sam", "Taylor"],
   employeeEmails: {},
+  clients: [],
   priorities: ["Urgent", "High", "Normal", "Low"],
   statuses: ["Queued", "In Progress", "Blocked", "Install", "Complete"],
   jobs: [
@@ -236,3 +237,6 @@ export const OGEE_DEFAULTS: BoardData = {
     },
   ],
 };
+
+// Seed the client list from the bundled jobs so the dropdown starts useful.
+OGEE_DEFAULTS.clients = Array.from(new Set(OGEE_DEFAULTS.jobs.map((j) => j.client).filter(Boolean)));

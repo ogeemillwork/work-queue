@@ -14,7 +14,12 @@ export function loadData(): BoardData {
     if (!raw) return cloneDefaults();
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.jobs)) return cloneDefaults();
-    return { ...cloneDefaults(), ...parsed };
+    const merged: BoardData = { ...cloneDefaults(), ...parsed };
+    // older saved data has no client list — build it from the jobs
+    merged.clients = Array.from(
+      new Set([...(merged.clients ?? []), ...merged.jobs.map((j) => j.client).filter(Boolean)])
+    );
+    return merged;
   } catch {
     return cloneDefaults();
   }

@@ -19,6 +19,7 @@ export default function JobDialog({
   job,
   isNew,
   canEdit,
+  clients,
   employees,
   priorities,
   statuses,
@@ -29,6 +30,7 @@ export default function JobDialog({
   job: Job;
   isNew: boolean;
   canEdit: boolean;
+  clients: string[];
   employees: string[];
   priorities: Priority[];
   statuses: Status[];
@@ -226,7 +228,18 @@ export default function JobDialog({
               </label>
               <label className={labelCls}>
                 Client
-                <input className={inputCls} value={draft.client} onChange={(e) => set("client", e.target.value)} />
+                <input
+                  className={inputCls}
+                  list="job-client-options"
+                  placeholder="Pick a client or type a new one"
+                  value={draft.client}
+                  onChange={(e) => set("client", e.target.value)}
+                />
+                <datalist id="job-client-options">
+                  {[...clients].sort().map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
               </label>
               <label className={labelCls}>
                 Client phone
