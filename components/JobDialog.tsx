@@ -11,12 +11,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "links", label: "Links" },
 ];
 
-const WORKFLOW: { status: Status; label: string; className: string }[] = [
-  { status: "In Progress", label: "▶ START", className: "border-[#2c7042] bg-[#193824] text-[#9ef1b5]" },
-  { status: "Blocked", label: "! BLOCKED", className: "border-[#8a4b3b] bg-[#442821] text-[#ffc1ae]" },
-  { status: "Complete", label: "✓ COMPLETE", className: "border-[#35688d] bg-[#173247] text-[#9bd1f6]" },
-];
-
 const inputCls = "w-full rounded-[10px] border border-line bg-[#0f151c] px-2.5 py-[9px] text-ink";
 const dateCls = "w-full rounded-[10px] border border-[#d2d7dd] bg-white px-2.5 py-[9px] text-[#111] [color-scheme:light]";
 const labelCls = "mb-3 grid gap-[5px] text-[13px] [font-weight:650]";
@@ -293,17 +287,6 @@ export default function JobDialog({
               Notes
               <textarea className={`${inputCls} resize-y`} rows={5} value={draft.notes} onChange={(e) => set("notes", e.target.value)} />
             </label>
-            <div className="flex gap-2">
-              {WORKFLOW.map((w) => (
-                <button
-                  key={w.status}
-                  className={`rounded-[10px] border px-[11px] py-2 text-[12px] font-extrabold ${w.className}`}
-                  onClick={() => set("status", w.status)}
-                >
-                  {w.label}
-                </button>
-              ))}
-            </div>
           </section>
         )}
 
