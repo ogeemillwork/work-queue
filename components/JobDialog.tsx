@@ -24,6 +24,7 @@ const labelCls = "mb-3 grid gap-[5px] text-[13px] [font-weight:650]";
 export default function JobDialog({
   job,
   isNew,
+  canEdit,
   employees,
   priorities,
   statuses,
@@ -33,6 +34,7 @@ export default function JobDialog({
 }: {
   job: Job;
   isNew: boolean;
+  canEdit: boolean;
   employees: string[];
   priorities: Priority[];
   statuses: Status[];
@@ -41,6 +43,7 @@ export default function JobDialog({
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState<Job>(() => JSON.parse(JSON.stringify(job)));
+  const [editMode, setEditMode] = useState(isNew);
   const [tab, setTab] = useState<Tab>("details");
   const [newTitle, setNewTitle] = useState("");
   const [newEmployee, setNewEmployee] = useState(employees[0] ?? "");
@@ -77,6 +80,107 @@ export default function JobDialog({
     const name = draft.name.trim();
     if (!name) return;
     onSave({ ...draft, name, client: draft.client.trim(), notes: draft.notes.trim(), dropbox: draft.dropbox.trim(), handoff: draft.handoff.trim() });
+  }
+
+  if (!editMode) {
+    const info: [string, string][] = [
+      ["Client", job.client || "—"],
+      ["Priority", job.priority],
+      ["Status", job.status],
+      ["Lead", job.lead || "—"],
+      ["Due date", job.due || "—"],
+      ["Materials", job.materials],
+    ];
+    return (
+      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4" onMouseDown={onClose}>
+        <div
+          className="w-full max-w-[640px] rounded-[18px] border border-line bg-[#151c24] p-[18px] shadow-dialog"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">{job.name}</h2>
+              <div className="text-[13px] text-muted">{job.client}</div>
+            </div>
+            <button className="px-2 text-[25px] leading-none" aria-label="Close" onClick={onClose}>
+              ×
+            </button>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2.5 md:grid-cols-3">
+            {info.map(([label, value]) => (
+              <div key={label}>
+                <div className="text-[11px] uppercase tracking-[.06em] text-muted">{label}</div>
+                <div className="text-[14px] font-bold">{value}</div>
+              </div>
+            ))}
+          </div>
+
+          {job.notes && (
+            <div className="mt-4">
+              <div className="text-[11px] uppercase tracking-[.06em] text-muted">Notes</div>
+              <p className="mt-1 whitespace-pre-wrap text-[14px]">{job.notes}</p>
+            </div>
+          )}
+
+          {job.subtasks.length > 0 && (
+            <div className="mt-4">
+              <div className="text-[11px] uppercase tracking-[.06em] text-muted">Subtasks</div>
+              <div className="mt-1 grid gap-1">
+                {job.subtasks.map((s) => (
+                  <div
+                    key={s.id}
+                    className={`flex items-baseline justify-between gap-2 rounded-lg border border-[#2b3743] bg-panel2 px-2.5 py-[6px] text-[14px] ${
+                      s.done ? "text-muted line-through" : ""
+                    }`}
+                  >
+                    <span>
+                      {s.done ? "✓ " : ""}
+                      {s.title}
+                    </span>
+                    <span className="shrink-0 text-[12px] text-muted">
+                      {s.employee}
+                      {s.due ? ` · ${s.due}` : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {job.dropbox && (
+            <div className="mt-4">
+              <div className="text-[11px] uppercase tracking-[.06em] text-muted">Dropbox Job Folder</div>
+              <a href={job.dropbox} target="_blank" rel="noreferrer" className="text-[14px] font-bold text-[#8ec8ef] underline">
+                {job.dropbox}
+              </a>
+            </div>
+          )}
+
+          {job.handoff && (
+            <div className="mt-4">
+              <div className="text-[11px] uppercase tracking-[.06em] text-muted">Job Handoff</div>
+              <p className="mt-1 whitespace-pre-wrap text-[14px]">{job.handoff}</p>
+            </div>
+          )}
+
+          <div className="mt-[18px] flex gap-2 border-t border-line pt-3.5">
+            <span className="flex-1" />
+            <button className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold" onClick={onClose}>
+              Close
+            </button>
+            {canEdit && (
+              <button
+                className="rounded-[10px] border border-warn bg-accent px-[11px] py-2 font-bold text-[#17130c]"
+                onClick={() => setEditMode(true)}
+              >
+                Edit
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -252,7 +356,17 @@ export default function JobDialog({
             </button>
           )}
           <span className="flex-1" />
-          <button className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold" onClick={onClose}>
+          <button
+            className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold"
+            onClick={() => {
+              if (isNew) {
+                onClose();
+              } else {
+                setDraft(JSON.parse(JSON.stringify(job)));
+                setEditMode(false);
+              }
+            }}
+          >
             Cancel
           </button>
           <button className="rounded-[10px] border border-warn bg-accent px-[11px] py-2 font-bold text-[#17130c]" onClick={save}>

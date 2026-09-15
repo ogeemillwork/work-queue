@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BoardAuth, BoardData, COLUMNS, Job } from "@/lib/types";
+import { BoardAuth, BoardData, COLUMNS, Job, Status } from "@/lib/types";
 import { cloneDefaults, loadData, saveData } from "@/lib/storage";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import ApprovalsDialog from "./ApprovalsDialog";
@@ -58,7 +58,6 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   const [priorityFilter, setPriorityFilter] = useState("");
   const [jobFilter, setJobFilter] = useState("");
   const [employeeFilter, setEmployeeFilter] = useState("");
-  const [shopTv, setShopTv] = useState(false);
   const [dbEmails, setDbEmails] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewAsTeam, setViewAsTeam] = useState(false);
@@ -158,18 +157,17 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
     );
   }
 
-  function moveJob(id: string, delta: number) {
+  function moveJobTo(id: string, status: Status) {
     if (!data) return;
     let moved: Job | null = null;
     const jobs = data.jobs.map((j) => {
-      if (j.id !== id) return j;
-      const i = COLUMNS.indexOf(j.status);
-      const ni = Math.max(0, Math.min(COLUMNS.length - 1, i + delta));
-      moved = { ...j, status: COLUMNS[ni] };
+      if (j.id !== id || j.status === status) return j;
+      moved = { ...j, status };
       return moved;
     });
+    if (!moved) return;
     update({ ...data, jobs });
-    if (moved) persistJob(moved);
+    persistJob(moved);
   }
 
   function saveJob(job: Job, isNew: boolean) {
@@ -238,7 +236,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
 
   return (
     <div>
-      <header className={`flex items-center justify-between gap-3 border-b border-line bg-[rgba(15,20,26,.98)] px-4 py-3 ${shopTv ? "" : "sticky top-0 z-20"}`}>
+      <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-line bg-[rgba(15,20,26,.98)] px-4 py-3">
         <div>
           <h1 className="text-[21px] font-bold tracking-[.08em]">OGEE MILLWORK</h1>
           <p className="mt-1 text-[12px] uppercase tracking-wide text-muted">
@@ -248,12 +246,6 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
         <div className="flex items-center gap-2">
           <Clock />
           <div className="flex flex-wrap justify-end gap-2">
-            <button
-              className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold"
-              onClick={() => setShopTv((v) => !v)}
-            >
-              {shopTv ? "Management Mode" : "Shop TV Mode"}
-            </button>
             {showAdminUi && (
               <button
                 className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold"
@@ -351,8 +343,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
         </div>
       </header>
 
-      {!shopTv && (
-        <section className="grid grid-cols-2 gap-2.5 p-[14px_18px] min-[901px]:grid-cols-[minmax(220px,1.8fr)_repeat(3,minmax(140px,1fr))]">
+      <section className="grid grid-cols-2 gap-2.5 p-[14px_18px] pb-0 min-[901px]:grid-cols-[minmax(220px,1.8fr)_repeat(2,minmax(140px,1fr))]">
           <input
             type="search"
             className="w-full rounded-[10px] border border-line bg-panel px-2.5 py-[9px] text-ink"
@@ -380,21 +371,9 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
               <option key={n}>{n}</option>
             ))}
           </select>
-          <select
-            className="w-full rounded-[10px] border border-line bg-panel px-2.5 py-[9px] text-ink"
-            value={employeeFilter}
-            onChange={(e) => setEmployeeFilter(e.target.value)}
-          >
-            <option value="">All employees</option>
-            {data.employees.map((emp) => (
-              <option key={emp}>{emp}</option>
-            ))}
-          </select>
-        </section>
-      )}
+      </section>
 
-      {shopTv && (
-        <section className="flex flex-wrap gap-2.5 px-[18px] pt-[14px]">
+      <section className="flex flex-wrap gap-2.5 px-[18px] pt-[14px]">
           <button
             className={`rounded-xl border px-[18px] py-[10px] text-[1.05rem] font-bold ${
               employeeFilter === ""
@@ -419,19 +398,21 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
             </button>
           ))}
         </section>
-      )}
 
-      <main
-        className={`grid items-start gap-3.5 overflow-auto px-[18px] pb-[22px] grid-cols-[repeat(2,minmax(260px,1fr))] ${
-          shopTv
-            ? "pt-[14px] text-[1.1rem] min-[901px]:grid-cols-[repeat(4,1fr)]"
-            : "min-[901px]:grid-cols-[repeat(4,minmax(270px,1fr))]"
-        }`}
-      >
+      <main className="grid items-start gap-3.5 overflow-auto px-[18px] pb-[22px] pt-[14px] grid-cols-[repeat(2,minmax(260px,1fr))] min-[901px]:grid-cols-[repeat(4,minmax(270px,1fr))]">
         {COLUMNS.map((status) => {
           const jobs = data.jobs.filter((j) => j.status === status && matches(j));
           return (
-            <section key={status} className="overflow-hidden rounded-2xl border border-line bg-panel">
+            <section
+              key={status}
+              className="overflow-hidden rounded-2xl border border-line bg-panel"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const id = e.dataTransfer.getData("text/plain");
+                if (id) moveJobTo(id, status);
+              }}
+            >
               <h2 className="flex items-center justify-between border-b border-line bg-panel2 px-3.5 py-3 text-[14px] font-bold uppercase tracking-[.08em]">
                 {status} <span className="min-w-[24px] text-center text-[12px] font-normal text-muted">{jobs.length}</span>
               </h2>
@@ -440,10 +421,8 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                   <JobCard
                     key={j.id}
                     job={j}
-                    shopTv={shopTv}
-                    tvEmployee={shopTv ? employeeFilter : ""}
+                    selectedEmployee={employeeFilter}
                     onOpen={() => setEditing({ job: j, isNew: false })}
-                    onMove={(delta) => moveJob(j.id, delta)}
                   />
                 ))}
               </div>
@@ -469,6 +448,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
         <JobDialog
           job={editing.job}
           isNew={editing.isNew}
+          canEdit={showAdminUi || !auth}
           employees={data.employees}
           priorities={data.priorities}
           statuses={data.statuses}
