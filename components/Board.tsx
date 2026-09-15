@@ -254,13 +254,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
             >
               {shopTv ? "Management Mode" : "Shop TV Mode"}
             </button>
-            <button
-              className="rounded-[10px] border border-warn bg-accent px-[11px] py-2 font-bold text-[#17130c]"
-              onClick={() => setEditing({ job: newJob(data.employees), isNew: true })}
-            >
-              + Add Job
-            </button>
-{showAdminUi && (
+            {showAdminUi && (
               <button
                 className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold"
                 onClick={() => setShowApprovals(true)}
@@ -298,6 +292,18 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                       {auth ? (showAdminUi ? "Admin" : "Team member") : "Not signed in"}
                     </div>
                   </div>
+                  {(showAdminUi || !auth) && (
+                    <button
+                      className="mt-1 w-full rounded-[10px] px-2.5 py-2 text-left text-[14px] font-bold text-accent hover:bg-panel2"
+                      role="menuitem"
+                      onClick={() => {
+                        setEditing({ job: newJob(data.employees), isNew: true });
+                        setMenuOpen(false);
+                      }}
+                    >
+                      + Add Job
+                    </button>
+                  )}
                   <button
                     className="mt-1 w-full rounded-[10px] px-2.5 py-2 text-left text-[14px] font-bold hover:bg-panel2"
                     role="menuitem"
