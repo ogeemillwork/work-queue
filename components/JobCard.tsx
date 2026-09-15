@@ -4,14 +4,14 @@ import { Job, Priority } from "@/lib/types";
 
 const PRIORITY_BORDER: Record<Priority, string> = {
   Urgent: "border-l-[#a855f7]",
-  High: "border-l-warn",
+  High: "border-l-danger",
   Normal: "border-l-info",
   Low: "border-l-ok",
 };
 
 const PRIORITY_TAG: Record<Priority, string> = {
   Urgent: "text-[#c084fc]",
-  High: "text-[#f0c86c]",
+  High: "text-[#ff8585]",
   Normal: "text-[#8ec8ef]",
   Low: "text-[#77d895]",
 };

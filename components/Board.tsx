@@ -476,7 +476,13 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
         }`}
       >
         {(expandedColumn ? [expandedColumn] : COLUMNS).map((status) => {
-          const jobs = data.jobs.filter((j) => j.status === status && matches(j));
+          const priorityRank = (j: Job) => {
+            const i = data.priorities.indexOf(j.priority);
+            return i === -1 ? data.priorities.length : i;
+          };
+          const jobs = data.jobs
+            .filter((j) => j.status === status && matches(j))
+            .sort((a, b) => priorityRank(a) - priorityRank(b));
           return (
             <section
               key={status}
