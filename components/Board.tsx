@@ -192,24 +192,6 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
     setEditing(null);
   }
 
-  async function resetData() {
-    if (dbMode) {
-      if (!confirm("Reset the shared board to the bundled preview data for everyone?")) return;
-      try {
-        const res = await fetch("/api/jobs/reset", { method: "POST", headers: authHeaders() });
-        if (res.ok) {
-          const body = await res.json();
-          setData((d) => (d ? { ...d, jobs: body.jobs } : d));
-        }
-      } catch (e) {
-        console.error(e);
-      }
-      return;
-    }
-    if (!confirm("Reset only this browser's preview data to the bundled defaults?")) return;
-    update(cloneDefaults());
-  }
-
   function addEmployee(name: string, email: string) {
     if (!data || data.employees.includes(name)) return;
     const employeeEmails = email ? { ...data.employeeEmails, [name]: email } : data.employeeEmails;
@@ -278,13 +260,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
             >
               + Add Job
             </button>
-            <button
-              className="rounded-[10px] border border-[#6d3232] bg-[#3b1d1d] px-[11px] py-2 font-bold text-[#ffb8b8]"
-              onClick={resetData}
-            >
-              Reset Preview Data
-            </button>
-            {showAdminUi && (
+{showAdminUi && (
               <button
                 className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold"
                 onClick={() => setShowApprovals(true)}
