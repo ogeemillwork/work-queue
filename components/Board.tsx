@@ -59,6 +59,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   const [jobFilter, setJobFilter] = useState("");
   const [employeeFilter, setEmployeeFilter] = useState("");
   const [shopTv, setShopTv] = useState(false);
+  const [dbEmails, setDbEmails] = useState(true);
   const [editing, setEditing] = useState<{ job: Job; isNew: boolean } | null>(null);
 
   useEffect(() => {
@@ -76,18 +77,32 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           if (res.ok) {
             const body = await res.json();
             let employees = cloneDefaults().employees;
+            const employeeEmails: Record<string, string> = {};
             try {
               const sb = getSupabaseBrowser();
               if (sb) {
-                const { data: emps } = await sb.from("employees").select("name").order("created_at");
-                if (emps) employees = emps.map((e) => e.name);
+                let emps = null;
+                const withEmail = await sb.from("employees").select("name,email").order("created_at");
+                if (withEmail.error) {
+                  // employees.email column not migrated yet — fall back to names only
+                  if (!cancelled) setDbEmails(false);
+                  emps = (await sb.from("employees").select("name").order("created_at")).data as
+                    | { name: string; email?: string }[]
+                    | null;
+                } else {
+                  emps = withEmail.data;
+                }
+                if (emps) {
+                  employees = emps.map((e) => e.name);
+                  for (const e of emps) if (e.email) employeeEmails[e.name] = e.email;
+                }
               }
             } catch {
               // keep the default list if the employees table is unreachable
             }
             if (!cancelled) {
               setDbMode(true);
-              setData({ ...cloneDefaults(), employees, jobs: body.jobs });
+              setData({ ...cloneDefaults(), employees, employeeEmails, jobs: body.jobs });
             }
             return;
           }
@@ -189,13 +204,29 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
     update(cloneDefaults());
   }
 
-  function addEmployee(name: string) {
+  function addEmployee(name: string, email: string) {
     if (!data || data.employees.includes(name)) return;
-    update({ ...data, employees: [...data.employees, name] });
+    const employeeEmails = email ? { ...data.employeeEmails, [name]: email } : data.employeeEmails;
+    update({ ...data, employees: [...data.employees, name], employeeEmails });
     if (dbMode) {
       getSupabaseBrowser()
         ?.from("employees")
-        .insert({ name })
+        .insert(dbEmails ? { name, email: email || null } : { name })
+        .then(({ error }) => error && console.error(error));
+    }
+  }
+
+  function setEmployeeEmail(name: string, email: string) {
+    if (!data || (data.employeeEmails[name] ?? "") === email) return;
+    const employeeEmails = { ...data.employeeEmails };
+    if (email) employeeEmails[name] = email;
+    else delete employeeEmails[name];
+    update({ ...data, employeeEmails });
+    if (dbMode && dbEmails) {
+      getSupabaseBrowser()
+        ?.from("employees")
+        .update({ email: email || null })
+        .eq("name", name)
         .then(({ error }) => error && console.error(error));
     }
   }
@@ -203,7 +234,9 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   function removeEmployee(name: string) {
     if (!data) return;
     if (!confirm(`Remove ${name} from the employee list?`)) return;
-    update({ ...data, employees: data.employees.filter((e) => e !== name) });
+    const employeeEmails = { ...data.employeeEmails };
+    delete employeeEmails[name];
+    update({ ...data, employees: data.employees.filter((e) => e !== name), employeeEmails });
     if (dbMode) {
       getSupabaseBrowser()
         ?.from("employees")
@@ -225,6 +258,25 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="rounded-[10px] border border-line bg-panel px-2.5 py-[7px] text-right">
+            {auth ? (
+              <>
+                <div className="text-[12px] font-bold">{auth.email}</div>
+                <div
+                  className={`mt-0.5 text-[10px] font-extrabold uppercase tracking-[.08em] ${
+                    auth.isAdmin ? "text-accent" : "text-muted"
+                  }`}
+                >
+                  {auth.isAdmin ? "Admin" : "Team member"}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-[12px] font-bold text-muted">Local preview</div>
+                <div className="mt-0.5 text-[10px] uppercase tracking-[.08em] text-muted">Not signed in</div>
+              </>
+            )}
+          </div>
           <Clock />
           <div className="flex flex-wrap justify-end gap-2">
             <button
@@ -313,6 +365,34 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
         </section>
       )}
 
+      {shopTv && (
+        <section className="flex flex-wrap gap-2.5 px-[18px] pt-[14px]">
+          <button
+            className={`rounded-xl border px-[18px] py-[10px] text-[1.05rem] font-bold ${
+              employeeFilter === ""
+                ? "border-warn bg-accent text-[#17130c]"
+                : "border-line bg-panel2 text-ink"
+            }`}
+            onClick={() => setEmployeeFilter("")}
+          >
+            Everyone
+          </button>
+          {data.employees.map((emp) => (
+            <button
+              key={emp}
+              className={`rounded-xl border px-[18px] py-[10px] text-[1.05rem] font-bold ${
+                employeeFilter === emp
+                  ? "border-warn bg-accent text-[#17130c]"
+                  : "border-line bg-panel2 text-ink"
+              }`}
+              onClick={() => setEmployeeFilter((v) => (v === emp ? "" : emp))}
+            >
+              {emp}
+            </button>
+          ))}
+        </section>
+      )}
+
       <main
         className={`grid items-start gap-3.5 overflow-auto px-[18px] pb-[22px] grid-cols-[repeat(2,minmax(260px,1fr))] ${
           shopTv
@@ -333,6 +413,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                     key={j.id}
                     job={j}
                     shopTv={shopTv}
+                    tvEmployee={shopTv ? employeeFilter : ""}
                     onOpen={() => setEditing({ job: j, isNew: false })}
                     onMove={(delta) => moveJob(j.id, delta)}
                   />
@@ -348,7 +429,9 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
       {showEmployees && (
         <EmployeesDialog
           employees={data.employees}
+          emails={data.employeeEmails}
           onAdd={addEmployee}
+          onSetEmail={setEmployeeEmail}
           onRemove={removeEmployee}
           onClose={() => setShowEmployees(false)}
         />

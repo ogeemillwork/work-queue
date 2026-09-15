@@ -12,6 +12,7 @@ function subtasks(prefix: string, rows: [string, string, string][], doneBefore =
 
 export const OGEE_DEFAULTS: BoardData = {
   employees: ["Jack", "Mike", "Alex", "Jose", "Sam", "Taylor"],
+  employeeEmails: {},
   priorities: ["Urgent", "High", "Normal", "Low"],
   statuses: ["Queued", "In Progress", "Blocked", "Install", "Complete"],
   jobs: [

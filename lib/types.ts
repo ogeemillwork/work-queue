@@ -29,6 +29,7 @@ export interface Job {
 
 export interface BoardData {
   employees: string[];
+  employeeEmails: Record<string, string>;
   priorities: Priority[];
   statuses: Status[];
   jobs: Job[];
