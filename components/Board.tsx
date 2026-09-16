@@ -7,7 +7,7 @@ import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import ApprovalsDialog from "./ApprovalsDialog";
 import ClientsDialog from "./ClientsDialog";
 import EmployeesDialog from "./EmployeesDialog";
-import JobCard, { STATE_COLORS } from "./JobCard";
+import JobCard, { STATE_COLORS, primaryState } from "./JobCard";
 import JobDialog from "./JobDialog";
 
 function Clock() {
@@ -42,7 +42,7 @@ function newJob(employees: string[]): Job {
     clientEmail: "",
     priority: "Medium",
     status: "Queued",
-    state: "Discovery",
+    states: ["Discovery"],
     lead: employees[0] ?? "",
     due: "",
     materials: "Waiting",
@@ -502,7 +502,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           aria-label="Job state color key"
           className="mx-[18px] mt-[14px] flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-xl border border-line bg-panel px-3.5 py-2.5"
         >
-          <span className="text-[11px] font-extrabold uppercase tracking-[.08em] text-muted">Job state</span>
+          <span className="text-[11px] font-extrabold uppercase tracking-[.08em] text-muted">Job states</span>
           {JOB_STATES.map((s) => (
             <span key={s} className="flex items-center gap-1.5 text-[12px] font-bold text-[#dce3ea]">
               <span className="h-2.5 w-2.5 rounded-full" style={{ background: STATE_COLORS[s] }} />
@@ -525,7 +525,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
             return i === -1 ? data.priorities.length : i;
           };
           const stateRank = (j: Job) => {
-            const i = JOB_STATES.indexOf(j.state ?? "Discovery");
+            const i = JOB_STATES.indexOf(primaryState(j));
             return i === -1 ? JOB_STATES.length : i;
           };
           const jobs = data.jobs

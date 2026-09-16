@@ -6,7 +6,11 @@ export type JobState =
   | "Discovery"
   | "Estimate"
   | "Design"
+  | "Engineering"
   | "Approval"
+  | "Procurement"
+  | "Pre-Production"
+  | "Final Dimensions"
   | "Production"
   | "FAB"
   | "Cut"
@@ -15,6 +19,10 @@ export type JobState =
   | "Pack"
   | "Check Staging"
   | "Delivered"
+  | "Installation"
+  | "Finish Coordination"
+  | "Punch"
+  | "Closeout"
   | "Complete"
   | "Adjustment";
 
@@ -22,7 +30,11 @@ export const JOB_STATES: JobState[] = [
   "Discovery",
   "Estimate",
   "Design",
+  "Engineering",
   "Approval",
+  "Procurement",
+  "Pre-Production",
+  "Final Dimensions",
   "Production",
   "FAB",
   "Cut",
@@ -31,6 +43,10 @@ export const JOB_STATES: JobState[] = [
   "Pack",
   "Check Staging",
   "Delivered",
+  "Installation",
+  "Finish Coordination",
+  "Punch",
+  "Closeout",
   "Complete",
   "Adjustment",
 ];
@@ -53,7 +69,9 @@ export interface Job {
   clientEmail?: string;
   priority: Priority;
   status: Status;
+  /** Legacy single pipeline state — superseded by `states`, kept for old saved data. */
   state?: JobState;
+  states?: JobState[];
   lead: string;
   due: string;
   materials: Materials;

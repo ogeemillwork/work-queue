@@ -11,11 +11,12 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   const jobs = (data ?? []).map((row: Record<string, unknown>) => {
     const { client_phone, client_email, ...rest } = row;
+    const states = Array.isArray(rest.states) && rest.states.length ? rest.states : [rest.state ?? "Discovery"];
     return {
       ...rest,
       clientPhone: client_phone ?? "",
       clientEmail: client_email ?? "",
-      state: rest.state ?? "Discovery",
+      states,
     };
   });
   return NextResponse.json({ jobs });
@@ -43,14 +44,21 @@ export async function PUT(req: NextRequest) {
     subtasks: job.subtasks ?? [],
     updated_at: new Date().toISOString(),
   };
-  let { error } = await supabase.from("jobs").upsert({
-    ...row,
+  const states = job.states?.length ? job.states : [job.state ?? "Discovery"];
+  const newColumns = {
     client_phone: job.clientPhone ?? "",
     client_email: job.clientEmail ?? "",
-    state: job.state ?? "Discovery",
-  });
+    state: states[0],
+    states,
+  };
+  let { error } = await supabase.from("jobs").upsert({ ...row, ...newColumns });
+  if (error && /states/.test(error.message)) {
+    // states column (0012) not migrated yet — keep the single-state column
+    const { states: _drop, ...older } = newColumns;
+    ({ error } = await supabase.from("jobs").upsert({ ...row, ...older }));
+  }
   if (error && /client_phone|client_email|state/.test(error.message)) {
-    // newer columns not migrated yet — save the rest of the job
+    // older columns (0007/0010) not migrated either — save the rest of the job
     ({ error } = await supabase.from("jobs").upsert(row));
   }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
