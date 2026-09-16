@@ -49,6 +49,10 @@ export const JOB_STATES: JobState[] = [
   "Adjustment",
 ];
 
+// Alphabetical listing for pick lists; JOB_STATES stays in pipeline order
+// for sorting and the color key.
+export const JOB_STATES_ALPHA: JobState[] = [...JOB_STATES].sort((a, b) => a.localeCompare(b));
+
 export type Materials = "Ready" | "Partial" | "Waiting";
 
 export interface Subtask {

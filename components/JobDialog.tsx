@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { JOB_STATES, Job, JobState, Materials, Priority, Status, Subtask } from "@/lib/types";
+import { JOB_STATES_ALPHA, Job, JobState, Materials, Priority, Status, Subtask } from "@/lib/types";
 import { STATE_COLORS, deriveJobStates } from "./JobCard";
 
 type Tab = "details" | "subtasks" | "links";
@@ -366,7 +366,7 @@ export default function JobDialog({
                     value={s.state ?? "Discovery"}
                     onChange={(e) => setSubtask(i, { state: e.target.value as JobState })}
                   >
-                    {JOB_STATES.map((st) => (
+                    {JOB_STATES_ALPHA.map((st) => (
                       <option key={st}>{st}</option>
                     ))}
                   </select>
@@ -398,7 +398,7 @@ export default function JobDialog({
                 value={newState}
                 onChange={(e) => setNewState(e.target.value as JobState)}
               >
-                {JOB_STATES.map((st) => (
+                {JOB_STATES_ALPHA.map((st) => (
                   <option key={st}>{st}</option>
                 ))}
               </select>
