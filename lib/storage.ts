@@ -1,8 +1,9 @@
 import { OGEE_DEFAULTS } from "./defaults";
 import { BoardData } from "./types";
 
-// Same key as the vanilla ogee-pma-local app, so existing browser data carries over.
-const STORAGE_KEY = "ogee-pma-v9-local";
+// v10: dropped the demo seed jobs for the real project list — a new key so
+// browsers holding the old demo data start fresh instead of resurrecting it.
+const STORAGE_KEY = "ogee-pma-v10-local";
 
 export function cloneDefaults(): BoardData {
   return JSON.parse(JSON.stringify(OGEE_DEFAULTS));

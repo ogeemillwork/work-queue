@@ -45,12 +45,10 @@ on sign-up (see `supabase/migrations/0002_auth_profiles.sql`).
 
 With `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` set, the board is shared: jobs live
 in a Supabase Postgres `jobs` table (schema in `supabase/migrations/`) accessed
-through the API routes in `app/api/jobs`, and Reset restores the bundled
-preview data for everyone.
+through the API routes in `app/api/jobs`.
 
 Without those env vars the app falls back to the original local-only behavior:
-changes are saved in browser `localStorage` under `ogee-pma-v9-local` (the same
-key as the vanilla version) and Reset only affects that browser.
+changes are saved in browser `localStorage` under `ogee-pma-v10-local`.
 
 ## Structure
 
