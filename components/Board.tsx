@@ -70,7 +70,9 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewAsTeam, setViewAsTeam] = useState(false);
   const [expandedColumn, setExpandedColumn] = useState<string | null>(null);
-  const [adminBoard, setAdminBoard] = useState(false);
+  // Admins land in admin mode; isAdminBoard only applies it when showAdminUi
+  // holds, so team members (and view-as-team) still get the work board.
+  const [adminBoard, setAdminBoard] = useState(true);
   const [editing, setEditing] = useState<{ job: Job; isNew: boolean } | null>(null);
   const [editingSubtask, setEditingSubtask] = useState<{ jobId: string; subtaskId: string } | null>(null);
 
