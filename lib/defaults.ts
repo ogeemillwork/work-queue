@@ -75,7 +75,7 @@ export const OGEE_DEFAULTS: BoardData = {
       clientEmail: "mike@farallonconstruction.com",
       priority: "Medium",
       status: "Install",
-      state: "Punch",
+      state: "Adjustment",
       lead: "",
       due: "",
       materials: "Ready",
@@ -85,7 +85,7 @@ export const OGEE_DEFAULTS: BoardData = {
       handoff: "",
       subtasks: [
         { id: "3015-pacific-t1", title: "Installation", employee: "", due: "", done: false, status: "Queued", state: "Installation" },
-        { id: "3015-pacific-t2", title: "Punch", employee: "", due: "", done: false, status: "Queued", state: "Punch" },
+        { id: "3015-pacific-t2", title: "Punch", employee: "", due: "", done: false, status: "Queued", state: "Adjustment" },
         { id: "3015-pacific-t3", title: "Closeout", employee: "", due: "", done: false, status: "Queued", state: "Closeout" },
       ],
     },

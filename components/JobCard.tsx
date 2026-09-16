@@ -37,7 +37,6 @@ export const STATE_COLORS: Record<JobState, string> = {
   Delivered: "#a3e635",
   Installation: "#4ade80",
   "Finish Coordination": "#34d399",
-  Punch: "#2dd4bf",
   Closeout: "#14b8a6",
   Complete: "#22c55e",
   Adjustment: "#f87171",
