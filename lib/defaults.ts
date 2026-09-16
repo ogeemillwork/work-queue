@@ -2,7 +2,7 @@ import { BoardData } from "./types";
 
 // Real project list from the OGEE Current Project List handoff (2026-09-15).
 export const OGEE_DEFAULTS: BoardData = {
-  employees: ["Jack", "Mike", "Alex", "Jose", "Sam", "Taylor"],
+  employees: ["Jack", "Andrew", "Anthony", "Juan", "Riccardo", "Martin", "Christian", "Matt"],
   employeeEmails: {},
   clients: [],
   priorities: ["Urgent", "High", "Medium", "Low"],
