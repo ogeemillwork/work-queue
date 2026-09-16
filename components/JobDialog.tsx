@@ -305,7 +305,7 @@ export default function JobDialog({
               <label className={labelCls}>
                 Lead
                 <select className={inputCls} value={draft.lead} onChange={(e) => set("lead", e.target.value)}>
-                  {withCurrent(draft.lead).map((emp) => (
+                  {employees.map((emp) => (
                     <option key={emp}>{emp}</option>
                   ))}
                 </select>
