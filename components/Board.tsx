@@ -35,14 +35,14 @@ function Clock() {
   );
 }
 
-function newJob(employees: string[]): Job {
+function newJob(employees: string[], priority: Priority = "Medium"): Job {
   return {
     id: `job-${Date.now()}`,
     name: "",
     client: "",
     clientPhone: "",
     clientEmail: "",
-    priority: "Medium",
+    priority,
     status: "Queued",
     state: "Discovery",
     lead: employees[0] ?? "",
@@ -652,6 +652,15 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                         onOpen={() => setEditingSubtask({ jobId: job.id, subtaskId: subtask.id })}
                       />
                     ))}
+                {isAdminBoard && (
+                  <button
+                    className="w-full rounded-xl border border-dashed border-[#3d4b5a] py-2.5 text-[15px] font-bold text-muted hover:border-accent hover:text-accent"
+                    aria-label={`Add ${column} priority job`}
+                    onClick={() => setEditing({ job: newJob(data.employees, column as Priority), isNew: true })}
+                  >
+                    +
+                  </button>
+                )}
               </div>
             </section>
           );

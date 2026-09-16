@@ -21,7 +21,6 @@ export type JobState =
   | "Delivered"
   | "Installation"
   | "Finish Coordination"
-  | "Punch"
   | "Closeout"
   | "Complete"
   | "Adjustment";
@@ -45,7 +44,6 @@ export const JOB_STATES: JobState[] = [
   "Delivered",
   "Installation",
   "Finish Coordination",
-  "Punch",
   "Closeout",
   "Complete",
   "Adjustment",

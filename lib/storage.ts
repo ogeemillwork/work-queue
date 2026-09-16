@@ -20,14 +20,16 @@ export function normalizeJobs<
     subtasks: { done: boolean; status?: string; state?: string }[];
   },
 >(jobs: T[]): T[] {
+  // the "Punch" state was folded into "Adjustment"
+  const fixState = (state?: string) => (state === "Punch" ? "Adjustment" : state);
   return jobs.map((j) => ({
     ...j,
     priority: j.priority === "Normal" ? "Medium" : j.priority,
-    state: j.state ?? j.states?.[0] ?? "Discovery",
+    state: fixState(j.state ?? j.states?.[0]) ?? "Discovery",
     subtasks: (j.subtasks ?? []).map((s) => ({
       ...s,
       status: s.status ?? (s.done ? "Complete" : "Queued"),
-      state: s.state ?? j.state ?? j.states?.[0] ?? "Discovery",
+      state: fixState(s.state ?? j.state ?? j.states?.[0]) ?? "Discovery",
     })),
   }));
 }
