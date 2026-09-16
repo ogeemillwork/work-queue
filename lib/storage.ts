@@ -9,16 +9,26 @@ export function cloneDefaults(): BoardData {
   return JSON.parse(JSON.stringify(OGEE_DEFAULTS));
 }
 
-// "Normal" priority was renamed to "Medium", and older jobs predate the
-// pipeline states; patch both on load. Jobs can be in several states at
-// once — older data with a single `state` becomes a one-element list.
-export function normalizeJobs<T extends { priority: string; state?: string; states?: string[] }>(
-  jobs: T[]
-): T[] {
+// Patch older saved data on load: the "Normal" priority rename, jobs that
+// predate the pipeline state (including the short-lived multi-state list),
+// and subtasks that predate their own workflow status.
+export function normalizeJobs<
+  T extends {
+    priority: string;
+    state?: string;
+    states?: string[];
+    subtasks: { done: boolean; status?: string; state?: string }[];
+  },
+>(jobs: T[]): T[] {
   return jobs.map((j) => ({
     ...j,
     priority: j.priority === "Normal" ? "Medium" : j.priority,
-    states: j.states?.length ? j.states : [j.state ?? "Discovery"],
+    state: j.state ?? j.states?.[0] ?? "Discovery",
+    subtasks: (j.subtasks ?? []).map((s) => ({
+      ...s,
+      status: s.status ?? (s.done ? "Complete" : "Queued"),
+      state: s.state ?? j.state ?? j.states?.[0] ?? "Discovery",
+    })),
   }));
 }
 

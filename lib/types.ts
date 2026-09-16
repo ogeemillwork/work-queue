@@ -59,6 +59,10 @@ export interface Subtask {
   employee: string;
   due: string;
   done: boolean;
+  /** Workflow column on the work board; `done` mirrors status === "Complete". */
+  status?: Status;
+  /** Pipeline stage this piece of work belongs to. */
+  state?: JobState;
 }
 
 export interface Job {
@@ -69,9 +73,8 @@ export interface Job {
   clientEmail?: string;
   priority: Priority;
   status: Status;
-  /** Legacy single pipeline state — superseded by `states`, kept for old saved data. */
+  /** Fallback pipeline state, shown only while a job has no open subtasks. */
   state?: JobState;
-  states?: JobState[];
   lead: string;
   due: string;
   materials: Materials;

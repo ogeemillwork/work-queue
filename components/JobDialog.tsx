@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { JOB_STATES, Job, JobState, Materials, Priority, Status, Subtask } from "@/lib/types";
-import { STATE_COLORS, jobStates } from "./JobCard";
+import { STATE_COLORS, deriveJobStates } from "./JobCard";
 
 type Tab = "details" | "subtasks" | "links";
 
@@ -45,20 +45,10 @@ export default function JobDialog({
   const [newTitle, setNewTitle] = useState("");
   const [newEmployee, setNewEmployee] = useState(employees[0] ?? "");
   const [newDue, setNewDue] = useState("");
+  const [newState, setNewState] = useState<JobState>("Discovery");
 
   function set<K extends keyof Job>(key: K, value: Job[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
-  }
-
-  const draftStates = jobStates(draft);
-
-  function toggleState(s: JobState) {
-    setDraft((d) => {
-      const current = jobStates(d);
-      const next = current.includes(s) ? current.filter((x) => x !== s) : [...current, s];
-      // keep pipeline order, and never save an empty list
-      return { ...d, states: JOB_STATES.filter((x) => next.includes(x)) };
-    });
   }
 
   function setSubtask(i: number, patch: Partial<Subtask>) {
@@ -73,7 +63,18 @@ export default function JobDialog({
     if (!title) return;
     setDraft((d) => ({
       ...d,
-      subtasks: [...d.subtasks, { id: `st-${Date.now()}`, title, employee: newEmployee, due: newDue, done: false }],
+      subtasks: [
+        ...d.subtasks,
+        {
+          id: `st-${Date.now()}`,
+          title,
+          employee: newEmployee,
+          due: newDue,
+          done: false,
+          status: "Queued",
+          state: newState,
+        },
+      ],
     }));
     setNewTitle("");
     setNewDue("");
@@ -89,7 +90,6 @@ export default function JobDialog({
     if (!name) return;
     onSave({
       ...draft,
-      states: draftStates.length ? draftStates : ["Discovery"],
       name,
       client: draft.client.trim(),
       clientPhone: (draft.clientPhone ?? "").trim(),
@@ -108,7 +108,20 @@ export default function JobDialog({
       ["Client email", job.clientEmail ? <a key="e" className={linkCls} href={`mailto:${job.clientEmail}`}>{job.clientEmail}</a> : "—"],
       ["Priority", job.priority],
       ["Status", job.status],
-      ["Job states", jobStates(job).join(" · ")],
+      [
+        "Job states",
+        <span key="s" className="flex flex-wrap gap-1">
+          {deriveJobStates(job).map((s) => (
+            <span
+              key={s}
+              className="rounded-full border border-current px-[6px] py-[2px] text-[10px] font-extrabold"
+              style={{ color: STATE_COLORS[s] }}
+            >
+              {s}
+            </span>
+          ))}
+        </span>,
+      ],
       ["Lead", job.lead || "—"],
       ["Due date", job.due || "—"],
       ["Materials", job.materials],
@@ -302,29 +315,6 @@ export default function JobDialog({
                 <input type="date" className={dateCls} value={draft.due} onChange={(e) => set("due", e.target.value)} />
               </label>
             </div>
-            <fieldset className={labelCls}>
-              <legend className="mb-[5px]">Job states</legend>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 rounded-[10px] border border-line bg-[#0f151c] p-2.5 sm:grid-cols-3 md:grid-cols-4">
-                {JOB_STATES.map((s) => {
-                  const checked = draftStates.includes(s);
-                  return (
-                    <label key={s} className="flex cursor-pointer items-center gap-1.5 text-[13px] font-bold">
-                      <input
-                        type="checkbox"
-                        className="accent-accent"
-                        checked={checked}
-                        onChange={() => toggleState(s)}
-                      />
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ background: STATE_COLORS[s] }}
-                      />
-                      {s}
-                    </label>
-                  );
-                })}
-              </div>
-            </fieldset>
             <label className={labelCls}>
               Material readiness
               <select className={inputCls} value={draft.materials} onChange={(e) => set("materials", e.target.value as Materials)}>
@@ -346,9 +336,16 @@ export default function JobDialog({
               {draft.subtasks.map((s, i) => (
                 <div
                   key={s.id}
-                  className="grid grid-cols-[auto_1fr] items-center gap-2 border-b border-line py-[9px] md:grid-cols-[auto_1fr_150px_135px_auto]"
+                  className="grid grid-cols-[auto_1fr] items-center gap-2 border-b border-line py-[9px] md:grid-cols-[auto_1fr_130px_140px_125px_auto]"
                 >
-                  <input type="checkbox" className="accent-accent" checked={s.done} onChange={(e) => setSubtask(i, { done: e.target.checked })} />
+                  <input
+                    type="checkbox"
+                    className="accent-accent"
+                    checked={s.done}
+                    onChange={(e) =>
+                      setSubtask(i, { done: e.target.checked, status: e.target.checked ? "Complete" : "Queued" })
+                    }
+                  />
                   <input
                     className={`${inputCls} ${s.done ? "text-muted line-through" : ""}`}
                     value={s.title}
@@ -361,6 +358,16 @@ export default function JobDialog({
                   >
                     {withCurrent(s.employee).map((emp) => (
                       <option key={emp}>{emp}</option>
+                    ))}
+                  </select>
+                  <select
+                    className={`${inputCls} md:col-auto col-start-2`}
+                    aria-label="Pipeline state"
+                    value={s.state ?? "Discovery"}
+                    onChange={(e) => setSubtask(i, { state: e.target.value as JobState })}
+                  >
+                    {JOB_STATES.map((st) => (
+                      <option key={st}>{st}</option>
                     ))}
                   </select>
                   <input
@@ -378,11 +385,21 @@ export default function JobDialog({
                 </div>
               ))}
             </div>
-            <div className="mt-3 grid grid-cols-[1fr_auto] gap-2 md:grid-cols-[1fr_150px_135px_auto]">
+            <div className="mt-3 grid grid-cols-[1fr_auto] gap-2 md:grid-cols-[1fr_130px_140px_125px_auto]">
               <input className={inputCls} placeholder="New subtask" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
               <select className={`${inputCls} col-start-1 md:col-auto`} value={newEmployee} onChange={(e) => setNewEmployee(e.target.value)}>
                 {employees.map((emp) => (
                   <option key={emp}>{emp}</option>
+                ))}
+              </select>
+              <select
+                className={`${inputCls} col-start-1 md:col-auto`}
+                aria-label="Pipeline state for new subtask"
+                value={newState}
+                onChange={(e) => setNewState(e.target.value as JobState)}
+              >
+                {JOB_STATES.map((st) => (
+                  <option key={st}>{st}</option>
                 ))}
               </select>
               <input type="date" className={`${dateCls} col-start-1 md:col-auto`} value={newDue} onChange={(e) => setNewDue(e.target.value)} />
