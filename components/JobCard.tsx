@@ -43,15 +43,24 @@ export const STATE_COLORS: Record<JobState, string> = {
   Adjustment: "#f87171",
 };
 
-// A job can sit in several pipeline states at once; the earliest one in
-// pipeline order is the "primary" state used for card color and sorting.
-export function jobStates(job: Job): JobState[] {
-  return job.states?.length ? job.states : [job.state ?? "Discovery"];
+// A job's states are derived: the distinct pipeline states of its open
+// (not-done) subtasks, in pipeline order. With no open subtasks it falls
+// back to the job's own stored state.
+export function deriveJobStates(job: Job): JobState[] {
+  const active = JOB_STATES.filter((st) =>
+    job.subtasks.some((s) => !s.done && (s.state ?? "Discovery") === st)
+  );
+  return active.length ? active : [job.state ?? "Discovery"];
 }
 
-export function primaryState(job: Job): JobState {
-  return [...jobStates(job)].sort((a, b) => JOB_STATES.indexOf(a) - JOB_STATES.indexOf(b))[0];
-}
+// Priority hues, for elements (like subtask cards) that color by the
+// parent job's priority with inline styles.
+export const PRIORITY_COLORS: Record<Priority, string> = {
+  Urgent: "#a855f7",
+  High: "#d85d5d",
+  Medium: "#e0b45a",
+  Low: "#5fb67a",
+};
 
 const MATERIALS_PILL: Record<string, string> = {
   Ready: "border-[#408254] text-[#8ee4a6]",
@@ -74,14 +83,14 @@ export default function JobCard({
   const total = job.subtasks.length;
   const employeeTasks = selectedEmployee ? job.subtasks.filter((s) => s.employee === selectedEmployee) : [];
   const byState = colorBy === "state";
-  const states = jobStates(job);
+  const states = deriveJobStates(job);
 
   return (
     <article
       className={`mb-2.5 cursor-pointer rounded-xl border border-[#2b3743] border-l-4 bg-card p-3 shadow-card ${
         byState ? "" : PRIORITY_BORDER[job.priority]
       }`}
-      style={byState ? { borderLeftColor: STATE_COLORS[primaryState(job)] } : undefined}
+      style={byState ? { borderLeftColor: STATE_COLORS[states[0]] } : undefined}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData("text/plain", job.id);

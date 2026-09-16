@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BoardAuth, BoardData, COLUMNS, JOB_STATES, Job, Priority, Status } from "@/lib/types";
+import { BoardAuth, BoardData, COLUMNS, JOB_STATES, Job, Priority, Status, Subtask } from "@/lib/types";
 import { cloneDefaults, loadData, normalizeJobs, saveData } from "@/lib/storage";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import ApprovalsDialog from "./ApprovalsDialog";
 import ClientsDialog from "./ClientsDialog";
 import EmployeesDialog from "./EmployeesDialog";
-import JobCard, { STATE_COLORS, primaryState } from "./JobCard";
+import JobCard, { STATE_COLORS, deriveJobStates } from "./JobCard";
+import SubtaskCard, { SUBTASK_DRAG_PREFIX } from "./SubtaskCard";
+import SubtaskDialog from "./SubtaskDialog";
 import JobDialog from "./JobDialog";
 
 function Clock() {
@@ -42,7 +44,7 @@ function newJob(employees: string[]): Job {
     clientEmail: "",
     priority: "Medium",
     status: "Queued",
-    states: ["Discovery"],
+    state: "Discovery",
     lead: employees[0] ?? "",
     due: "",
     materials: "Waiting",
@@ -70,6 +72,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   const [expandedColumn, setExpandedColumn] = useState<string | null>(null);
   const [adminBoard, setAdminBoard] = useState(false);
   const [editing, setEditing] = useState<{ job: Job; isNew: boolean } | null>(null);
+  const [editingSubtask, setEditingSubtask] = useState<{ jobId: string; subtaskId: string } | null>(null);
 
   // What the UI treats as admin: a real admin can flip viewAsTeam on to
   // preview exactly what non-admins see.
@@ -196,6 +199,48 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
     if (!moved) return;
     update({ ...data, jobs });
     persistJob(moved);
+  }
+
+  // Update (or drop, with next = null) one subtask inside its job and persist.
+  function patchSubtask(jobId: string, subtaskId: string, next: Subtask | null) {
+    if (!data) return;
+    let moved: Job | null = null;
+    const jobs = data.jobs.map((j) => {
+      if (j.id !== jobId) return j;
+      moved = {
+        ...j,
+        subtasks:
+          next === null
+            ? j.subtasks.filter((s) => s.id !== subtaskId)
+            : j.subtasks.map((s) => (s.id === subtaskId ? next : s)),
+      };
+      return moved;
+    });
+    if (!moved) return;
+    update({ ...data, jobs });
+    persistJob(moved);
+  }
+
+  function moveSubtask(jobId: string, subtaskId: string, status: Status) {
+    const job = data?.jobs.find((j) => j.id === jobId);
+    const sub = job?.subtasks.find((s) => s.id === subtaskId);
+    if (!sub) return;
+    patchSubtask(jobId, subtaskId, { ...sub, status, done: status === "Complete" });
+  }
+
+  function subtaskStatus(s: Subtask): Status {
+    return s.status ?? (s.done ? "Complete" : "Queued");
+  }
+
+  function matchesSubtask(j: Job, s: Subtask) {
+    const q = search.trim().toLowerCase();
+    const text = `${s.title} ${s.employee} ${j.name} ${j.client}`.toLowerCase();
+    return (
+      (!q || text.includes(q)) &&
+      (!priorityFilter || j.priority === priorityFilter) &&
+      (!jobFilter || j.name === jobFilter) &&
+      (!employeeFilter || s.employee === employeeFilter)
+    );
   }
 
   function saveJob(job: Job, isNew: boolean) {
@@ -497,19 +542,26 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           ))}
         </section>
 
-      {isAdminBoard && (
-        <section
-          aria-label="Job state color key"
-          className="mx-[18px] mt-[14px] flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-xl border border-line bg-panel px-3.5 py-2.5"
-        >
-          <span className="text-[11px] font-extrabold uppercase tracking-[.08em] text-muted">Job states</span>
-          {JOB_STATES.map((s) => (
-            <span key={s} className="flex items-center gap-1.5 text-[12px] font-bold text-[#dce3ea]">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: STATE_COLORS[s] }} />
-              {s}
-            </span>
-          ))}
-        </section>
+      <section
+        aria-label="Job state color key"
+        className="mx-[18px] mt-[14px] flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-xl border border-line bg-panel px-3.5 py-2.5"
+      >
+        <span className="text-[11px] font-extrabold uppercase tracking-[.08em] text-muted">States</span>
+        {JOB_STATES.map((s) => (
+          <span key={s} className="flex items-center gap-1.5 text-[12px] font-bold text-[#dce3ea]">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: STATE_COLORS[s] }} />
+            {s}
+          </span>
+        ))}
+      </section>
+
+      {!isAdminBoard && data.jobs.every((j) => j.subtasks.length === 0) && (
+        <p className="px-[18px] pt-[14px] text-[13px] text-muted">
+          No subtasks yet — the work board shows each job&apos;s subtasks as cards.{" "}
+          {showAdminUi || !auth
+            ? "Switch to Admin mode, open a job, and add subtasks on its Subtasks tab."
+            : "An admin adds subtasks to jobs, and they show up here."}
+        </p>
       )}
 
       <main
@@ -525,12 +577,27 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
             return i === -1 ? data.priorities.length : i;
           };
           const stateRank = (j: Job) => {
-            const i = JOB_STATES.indexOf(primaryState(j));
+            const i = JOB_STATES.indexOf(deriveJobStates(j)[0]);
             return i === -1 ? JOB_STATES.length : i;
           };
-          const jobs = data.jobs
-            .filter((j) => (isAdminBoard ? j.priority === column : j.status === column) && matches(j))
-            .sort((a, b) => (isAdminBoard ? stateRank(a) - stateRank(b) : priorityRank(a) - priorityRank(b)));
+          // Admin mode: jobs by priority. Work mode: every job's subtasks,
+          // as their own cards, by subtask workflow status.
+          const jobs = isAdminBoard
+            ? data.jobs
+                .filter((j) => j.priority === column && matches(j))
+                .sort((a, b) => stateRank(a) - stateRank(b))
+            : [];
+          const work = isAdminBoard
+            ? []
+            : data.jobs
+                .flatMap((j) => j.subtasks.map((s) => ({ job: j, subtask: s })))
+                .filter(({ job, subtask }) => subtaskStatus(subtask) === column && matchesSubtask(job, subtask))
+                .sort(
+                  (a, b) =>
+                    priorityRank(a.job) - priorityRank(b.job) ||
+                    (a.subtask.due || "9999").localeCompare(b.subtask.due || "9999")
+                );
+          const count = isAdminBoard ? jobs.length : work.length;
           return (
             <section
               key={column}
@@ -538,10 +605,15 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
-                const id = e.dataTransfer.getData("text/plain");
-                if (!id) return;
-                if (isAdminBoard) moveJob(id, { priority: column as Priority });
-                else moveJob(id, { status: column as Status });
+                const payload = e.dataTransfer.getData("text/plain");
+                if (!payload) return;
+                if (payload.startsWith(SUBTASK_DRAG_PREFIX)) {
+                  if (isAdminBoard) return;
+                  const [jobId, subtaskId] = payload.slice(SUBTASK_DRAG_PREFIX.length).split("\n");
+                  moveSubtask(jobId, subtaskId, column as Status);
+                } else if (isAdminBoard) {
+                  moveJob(payload, { priority: column as Priority });
+                }
               }}
             >
               <h2
@@ -550,7 +622,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
               >
                 {column}
                 <span className="min-w-[24px] text-center text-[12px] font-normal text-muted">
-                  {expandedColumn === column ? `${jobs.length} · show all columns` : jobs.length}
+                  {expandedColumn === column ? `${count} · show all columns` : count}
                 </span>
               </h2>
               <div
@@ -560,15 +632,24 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                     : "min-h-[480px] p-2.5"
                 }
               >
-                {jobs.map((j) => (
-                  <JobCard
-                    key={j.id}
-                    job={j}
-                    colorBy={isAdminBoard ? "state" : "priority"}
-                    selectedEmployee={employeeFilter}
-                    onOpen={() => setEditing({ job: j, isNew: false })}
-                  />
-                ))}
+                {isAdminBoard
+                  ? jobs.map((j) => (
+                      <JobCard
+                        key={j.id}
+                        job={j}
+                        colorBy="state"
+                        selectedEmployee={employeeFilter}
+                        onOpen={() => setEditing({ job: j, isNew: false })}
+                      />
+                    ))
+                  : work.map(({ job, subtask }) => (
+                      <SubtaskCard
+                        key={`${job.id}-${subtask.id}`}
+                        job={job}
+                        subtask={subtask}
+                        onOpen={() => setEditingSubtask({ jobId: job.id, subtaskId: subtask.id })}
+                      />
+                    ))}
               </div>
             </section>
           );
@@ -606,6 +687,35 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           onClose={() => setEditing(null)}
         />
       )}
+
+      {editingSubtask &&
+        (() => {
+          const job = data.jobs.find((j) => j.id === editingSubtask.jobId);
+          const subtask = job?.subtasks.find((s) => s.id === editingSubtask.subtaskId);
+          if (!job || !subtask) return null;
+          return (
+            <SubtaskDialog
+              job={job}
+              subtask={subtask}
+              employees={data.employees}
+              statuses={data.statuses}
+              onSave={(next) => {
+                patchSubtask(job.id, subtask.id, next);
+                setEditingSubtask(null);
+              }}
+              onDelete={() => {
+                if (!confirm("Delete this subtask?")) return;
+                patchSubtask(job.id, subtask.id, null);
+                setEditingSubtask(null);
+              }}
+              onOpenJob={() => {
+                setEditingSubtask(null);
+                setEditing({ job, isNew: false });
+              }}
+              onClose={() => setEditingSubtask(null)}
+            />
+          );
+        })()}
     </div>
   );
 }
