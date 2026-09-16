@@ -11,7 +11,12 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   const jobs = (data ?? []).map((row: Record<string, unknown>) => {
     const { client_phone, client_email, ...rest } = row;
-    return { ...rest, clientPhone: client_phone ?? "", clientEmail: client_email ?? "" };
+    return {
+      ...rest,
+      clientPhone: client_phone ?? "",
+      clientEmail: client_email ?? "",
+      state: rest.state ?? "Discovery",
+    };
   });
   return NextResponse.json({ jobs });
 }
@@ -38,11 +43,14 @@ export async function PUT(req: NextRequest) {
     subtasks: job.subtasks ?? [],
     updated_at: new Date().toISOString(),
   };
-  let { error } = await supabase
-    .from("jobs")
-    .upsert({ ...row, client_phone: job.clientPhone ?? "", client_email: job.clientEmail ?? "" });
-  if (error && /client_phone|client_email/.test(error.message)) {
-    // contact columns not migrated yet — save the rest of the job
+  let { error } = await supabase.from("jobs").upsert({
+    ...row,
+    client_phone: job.clientPhone ?? "",
+    client_email: job.clientEmail ?? "",
+    state: job.state ?? "Discovery",
+  });
+  if (error && /client_phone|client_email|state/.test(error.message)) {
+    // newer columns not migrated yet — save the rest of the job
     ({ error } = await supabase.from("jobs").upsert(row));
   }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

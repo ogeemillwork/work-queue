@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Job, Materials, Priority, Status, Subtask } from "@/lib/types";
+import { JOB_STATES, Job, JobState, Materials, Priority, Status, Subtask } from "@/lib/types";
 
 type Tab = "details" | "subtasks" | "links";
 
@@ -95,6 +95,7 @@ export default function JobDialog({
       ["Client email", job.clientEmail ? <a key="e" className={linkCls} href={`mailto:${job.clientEmail}`}>{job.clientEmail}</a> : "—"],
       ["Priority", job.priority],
       ["Status", job.status],
+      ["Job state", job.state ?? "Discovery"],
       ["Lead", job.lead || "—"],
       ["Due date", job.due || "—"],
       ["Materials", job.materials],
@@ -271,6 +272,18 @@ export default function JobDialog({
                 Status
                 <select className={inputCls} value={draft.status} onChange={(e) => set("status", e.target.value as Status)}>
                   {statuses.map((s) => (
+                    <option key={s}>{s}</option>
+                  ))}
+                </select>
+              </label>
+              <label className={labelCls}>
+                Job state
+                <select
+                  className={inputCls}
+                  value={draft.state ?? "Discovery"}
+                  onChange={(e) => set("state", e.target.value as JobState)}
+                >
+                  {JOB_STATES.map((s) => (
                     <option key={s}>{s}</option>
                   ))}
                 </select>

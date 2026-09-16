@@ -1,6 +1,6 @@
 "use client";
 
-import { Job, Priority } from "@/lib/types";
+import { Job, JobState, Priority } from "@/lib/types";
 
 const PRIORITY_BORDER: Record<Priority, string> = {
   Urgent: "border-l-[#a855f7]",
@@ -16,6 +16,41 @@ const PRIORITY_TAG: Record<Priority, string> = {
   Low: "text-[#77d895]",
 };
 
+// One hue per pipeline stage, walking the spectrum from Discovery to Complete.
+const STATE_BORDER: Record<JobState, string> = {
+  Discovery: "border-l-[#94a3b8]",
+  Estimate: "border-l-[#22d3ee]",
+  Design: "border-l-[#60a5fa]",
+  Approval: "border-l-[#818cf8]",
+  Production: "border-l-[#a78bfa]",
+  FAB: "border-l-[#e879f9]",
+  Cut: "border-l-[#f472b6]",
+  Assembly: "border-l-[#fb7185]",
+  Shipping: "border-l-[#fb923c]",
+  Pack: "border-l-[#fbbf24]",
+  "Check Staging": "border-l-[#facc15]",
+  Delivered: "border-l-[#a3e635]",
+  Complete: "border-l-[#4ade80]",
+  Adjustment: "border-l-[#f87171]",
+};
+
+const STATE_TAG: Record<JobState, string> = {
+  Discovery: "text-[#94a3b8]",
+  Estimate: "text-[#22d3ee]",
+  Design: "text-[#60a5fa]",
+  Approval: "text-[#818cf8]",
+  Production: "text-[#a78bfa]",
+  FAB: "text-[#e879f9]",
+  Cut: "text-[#f472b6]",
+  Assembly: "text-[#fb7185]",
+  Shipping: "text-[#fb923c]",
+  Pack: "text-[#fbbf24]",
+  "Check Staging": "text-[#facc15]",
+  Delivered: "text-[#a3e635]",
+  Complete: "text-[#4ade80]",
+  Adjustment: "text-[#f87171]",
+};
+
 const MATERIALS_PILL: Record<string, string> = {
   Ready: "border-[#408254] text-[#8ee4a6]",
   Partial: "border-[#8d6c31] text-[#ebc66f]",
@@ -24,20 +59,26 @@ const MATERIALS_PILL: Record<string, string> = {
 
 export default function JobCard({
   job,
+  colorBy = "priority",
   selectedEmployee = "",
   onOpen,
 }: {
   job: Job;
+  colorBy?: "priority" | "state";
   selectedEmployee?: string;
   onOpen: () => void;
 }) {
   const done = job.subtasks.filter((s) => s.done).length;
   const total = job.subtasks.length;
   const employeeTasks = selectedEmployee ? job.subtasks.filter((s) => s.employee === selectedEmployee) : [];
+  const state: JobState = job.state ?? "Discovery";
+  const borderCls = colorBy === "state" ? STATE_BORDER[state] : PRIORITY_BORDER[job.priority];
+  const tagCls = colorBy === "state" ? STATE_TAG[state] : PRIORITY_TAG[job.priority];
+  const tagText = colorBy === "state" ? state : job.priority;
 
   return (
     <article
-      className={`mb-2.5 cursor-pointer rounded-xl border border-[#2b3743] border-l-4 bg-card p-3 shadow-card ${PRIORITY_BORDER[job.priority]}`}
+      className={`mb-2.5 cursor-pointer rounded-xl border border-[#2b3743] border-l-4 bg-card p-3 shadow-card ${borderCls}`}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData("text/plain", job.id);
@@ -51,9 +92,9 @@ export default function JobCard({
           <div className="mt-0.5 text-[13px] text-muted">{job.client}</div>
         </div>
         <span
-          className={`h-fit rounded-full border border-current px-[6px] py-[3px] text-[10px] font-extrabold ${PRIORITY_TAG[job.priority]}`}
+          className={`h-fit shrink-0 rounded-full border border-current px-[6px] py-[3px] text-[10px] font-extrabold ${tagCls}`}
         >
-          {job.priority}
+          {tagText}
         </span>
       </div>
       <div className="mb-[7px] mt-[9px] flex flex-wrap gap-[5px]">

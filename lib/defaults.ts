@@ -240,3 +240,15 @@ export const OGEE_DEFAULTS: BoardData = {
 
 // Seed the client list from the bundled jobs so the dropdown starts useful.
 OGEE_DEFAULTS.clients = Array.from(new Set(OGEE_DEFAULTS.jobs.map((j) => j.client).filter(Boolean)));
+
+// Give the bundled jobs a plausible pipeline state matching their status.
+const DEFAULT_STATE_BY_STATUS = {
+  Queued: "Estimate",
+  "In Progress": "Production",
+  Blocked: "Approval",
+  Install: "Shipping",
+  Complete: "Complete",
+} as const;
+OGEE_DEFAULTS.jobs.forEach((j) => {
+  j.state = DEFAULT_STATE_BY_STATUS[j.status];
+});

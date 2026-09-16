@@ -2,6 +2,39 @@ export type Priority = "Urgent" | "High" | "Medium" | "Low";
 
 export type Status = "Queued" | "In Progress" | "Blocked" | "Install" | "Complete";
 
+export type JobState =
+  | "Discovery"
+  | "Estimate"
+  | "Design"
+  | "Approval"
+  | "Production"
+  | "FAB"
+  | "Cut"
+  | "Assembly"
+  | "Shipping"
+  | "Pack"
+  | "Check Staging"
+  | "Delivered"
+  | "Complete"
+  | "Adjustment";
+
+export const JOB_STATES: JobState[] = [
+  "Discovery",
+  "Estimate",
+  "Design",
+  "Approval",
+  "Production",
+  "FAB",
+  "Cut",
+  "Assembly",
+  "Shipping",
+  "Pack",
+  "Check Staging",
+  "Delivered",
+  "Complete",
+  "Adjustment",
+];
+
 export type Materials = "Ready" | "Partial" | "Waiting";
 
 export interface Subtask {
@@ -20,6 +53,7 @@ export interface Job {
   clientEmail?: string;
   priority: Priority;
   status: Status;
+  state?: JobState;
   lead: string;
   due: string;
   materials: Materials;

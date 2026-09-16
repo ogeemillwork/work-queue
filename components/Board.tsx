@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BoardAuth, BoardData, COLUMNS, Job, Status } from "@/lib/types";
+import { BoardAuth, BoardData, COLUMNS, JOB_STATES, Job, Priority, Status } from "@/lib/types";
 import { cloneDefaults, loadData, normalizeJobs, saveData } from "@/lib/storage";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import ApprovalsDialog from "./ApprovalsDialog";
@@ -42,6 +42,7 @@ function newJob(employees: string[]): Job {
     clientEmail: "",
     priority: "Medium",
     status: "Queued",
+    state: "Discovery",
     lead: employees[0] ?? "",
     due: "",
     materials: "Waiting",
@@ -66,12 +67,16 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   const [dbEmails, setDbEmails] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewAsTeam, setViewAsTeam] = useState(false);
-  const [expandedColumn, setExpandedColumn] = useState<Status | null>(null);
+  const [expandedColumn, setExpandedColumn] = useState<string | null>(null);
+  const [adminBoard, setAdminBoard] = useState(false);
   const [editing, setEditing] = useState<{ job: Job; isNew: boolean } | null>(null);
 
   // What the UI treats as admin: a real admin can flip viewAsTeam on to
   // preview exactly what non-admins see.
   const showAdminUi = !!auth?.isAdmin && !viewAsTeam;
+  // Admin mode pivots the board: columns become priority levels and cards
+  // take the color of their pipeline state. Work mode is the status board.
+  const isAdminBoard = adminBoard && showAdminUi;
 
   useEffect(() => {
     let cancelled = false;
@@ -180,12 +185,12 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
     );
   }
 
-  function moveJobTo(id: string, status: Status) {
+  function moveJob(id: string, patch: Partial<Job>) {
     if (!data) return;
     let moved: Job | null = null;
     const jobs = data.jobs.map((j) => {
-      if (j.id !== id || j.status === status) return j;
-      moved = { ...j, status };
+      if (j.id !== id) return j;
+      moved = { ...j, ...patch };
       return moved;
     });
     if (!moved) return;
@@ -301,6 +306,19 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
         </div>
         <div className="flex items-center gap-2">
           <Clock />
+          {showAdminUi && (
+            <button
+              className={`rounded-[10px] border px-[11px] py-2 font-bold ${
+                adminBoard ? "border-warn bg-accent text-[#17130c]" : "border-line bg-panel2"
+              }`}
+              onClick={() => {
+                setAdminBoard((v) => !v);
+                setExpandedColumn(null);
+              }}
+            >
+              {adminBoard ? "Work Mode" : "Admin Mode"}
+            </button>
+          )}
           <div className="relative">
             <button
               className={`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-panel2 text-[15px] font-extrabold ${
@@ -475,32 +493,38 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
             : "grid-cols-[repeat(2,minmax(260px,1fr))] min-[901px]:grid-cols-[repeat(4,minmax(270px,1fr))]"
         }`}
       >
-        {(expandedColumn ? [expandedColumn] : COLUMNS).map((status) => {
+        {((expandedColumn ? [expandedColumn] : isAdminBoard ? data.priorities : COLUMNS) as string[]).map((column) => {
           const priorityRank = (j: Job) => {
             const i = data.priorities.indexOf(j.priority);
             return i === -1 ? data.priorities.length : i;
           };
+          const stateRank = (j: Job) => {
+            const i = JOB_STATES.indexOf(j.state ?? "Discovery");
+            return i === -1 ? JOB_STATES.length : i;
+          };
           const jobs = data.jobs
-            .filter((j) => j.status === status && matches(j))
-            .sort((a, b) => priorityRank(a) - priorityRank(b));
+            .filter((j) => (isAdminBoard ? j.priority === column : j.status === column) && matches(j))
+            .sort((a, b) => (isAdminBoard ? stateRank(a) - stateRank(b) : priorityRank(a) - priorityRank(b)));
           return (
             <section
-              key={status}
+              key={column}
               className="overflow-hidden rounded-2xl border border-line bg-panel"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
                 const id = e.dataTransfer.getData("text/plain");
-                if (id) moveJobTo(id, status);
+                if (!id) return;
+                if (isAdminBoard) moveJob(id, { priority: column as Priority });
+                else moveJob(id, { status: column as Status });
               }}
             >
               <h2
                 className="flex cursor-pointer items-center justify-between border-b border-line bg-panel2 px-3.5 py-3 text-[14px] font-bold uppercase tracking-[.08em]"
-                onClick={() => setExpandedColumn((c) => (c === status ? null : status))}
+                onClick={() => setExpandedColumn((c) => (c === column ? null : column))}
               >
-                {status}
+                {column}
                 <span className="min-w-[24px] text-center text-[12px] font-normal text-muted">
-                  {expandedColumn === status ? `${jobs.length} · show all columns` : jobs.length}
+                  {expandedColumn === column ? `${jobs.length} · show all columns` : jobs.length}
                 </span>
               </h2>
               <div
@@ -514,6 +538,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                   <JobCard
                     key={j.id}
                     job={j}
+                    colorBy={isAdminBoard ? "state" : "priority"}
                     selectedEmployee={employeeFilter}
                     onOpen={() => setEditing({ job: j, isNew: false })}
                   />
