@@ -8,9 +8,14 @@ export function cloneDefaults(): BoardData {
   return JSON.parse(JSON.stringify(OGEE_DEFAULTS));
 }
 
-// "Normal" priority was renamed to "Medium"; older saved jobs still carry it.
-export function normalizeJobs<T extends { priority: string }>(jobs: T[]): T[] {
-  return jobs.map((j) => (j.priority === "Normal" ? { ...j, priority: "Medium" } : j));
+// "Normal" priority was renamed to "Medium", and older jobs predate the
+// pipeline state field; patch both on load.
+export function normalizeJobs<T extends { priority: string; state?: string }>(jobs: T[]): T[] {
+  return jobs.map((j) => ({
+    ...j,
+    priority: j.priority === "Normal" ? "Medium" : j.priority,
+    state: j.state ?? "Discovery",
+  }));
 }
 
 export function loadData(): BoardData {
