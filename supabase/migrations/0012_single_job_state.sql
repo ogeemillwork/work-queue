@@ -15,25 +15,27 @@ update public.jobs set state = 'Procurement' where id in ('cws-158-159', 'ehsan-
 update public.jobs set state = 'Final Dimensions' where id = 'frances-howell';
 update public.jobs set state = 'Closeout' where id = '720-waller';
 
--- Starter subtasks from each project's stated next actions, only where
--- no subtasks have been entered yet.
-update public.jobs set subtasks = '[{"id": "156-liberty-t1", "title": "Finalize remaining approval items", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Approval"}, {"id": "156-liberty-t2", "title": "Release approved areas to production", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Production"}]'::jsonb
-  where id = '156-liberty' and subtasks = '[]'::jsonb;
-update public.jobs set subtasks = '[{"id": "62-highgate-t1", "title": "Begin cutting kitchen casework", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Cut"}, {"id": "62-highgate-t2", "title": "Coordinate lighting/valance details", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Engineering"}]'::jsonb
-  where id = '62-highgate' and subtasks = '[]'::jsonb;
-update public.jobs set subtasks = '[{"id": "495-goodman-t1", "title": "Coordinate cabinet inserts, HVAC grilles and electrical", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Engineering"}, {"id": "495-goodman-t2", "title": "Finalize design details before release to production", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Design"}]'::jsonb
-  where id = '495-goodman' and subtasks = '[]'::jsonb;
-update public.jobs set subtasks = '[{"id": "3015-pacific-t1", "title": "Complete remaining installation items", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Installation"}, {"id": "3015-pacific-t2", "title": "Work the punch list", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Punch"}, {"id": "3015-pacific-t3", "title": "Closeout documentation", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Closeout"}]'::jsonb
-  where id = '3015-pacific' and subtasks = '[]'::jsonb;
-update public.jobs set subtasks = '[{"id": "20-conifer-t1", "title": "Install remaining millwork", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Installation"}, {"id": "20-conifer-t2", "title": "Coordinate finish work with Lara''s painting", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Finish Coordination"}, {"id": "20-conifer-t3", "title": "Install appliance garage after stone is complete", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Installation"}]'::jsonb
-  where id = '20-conifer' and subtasks = '[]'::jsonb;
-update public.jobs set subtasks = '[{"id": "cws-158-159-t1", "title": "Procure doors, glazing and hardware", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Procurement"}, {"id": "cws-158-159-t2", "title": "Begin door fabrication", "employee": "", "due": "", "done": false, "status": "Queued", "state": "FAB"}]'::jsonb
-  where id = 'cws-158-159' and subtasks = '[]'::jsonb;
-update public.jobs set subtasks = '[{"id": "1525-shotwell-t1", "title": "Finalize revised shop drawings", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Engineering"}, {"id": "1525-shotwell-t2", "title": "Confirm maple/calibrated plywood construction details", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Design"}]'::jsonb
-  where id = '1525-shotwell' and subtasks = '[]'::jsonb;
-update public.jobs set subtasks = '[{"id": "ehsan-doors-t1", "title": "Source specialty paint-grade pocket door", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Procurement"}, {"id": "ehsan-doors-t2", "title": "Add project address to PM file", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Discovery"}]'::jsonb
-  where id = 'ehsan-doors' and subtasks = '[]'::jsonb;
-update public.jobs set subtasks = '[{"id": "frances-howell-t1", "title": "Request final dimensions", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Final Dimensions"}, {"id": "frances-howell-t2", "title": "Fabricate white-oak countertop", "employee": "", "due": "", "done": false, "status": "Queued", "state": "FAB"}]'::jsonb
-  where id = 'frances-howell' and subtasks = '[]'::jsonb;
-update public.jobs set subtasks = '[{"id": "720-waller-t1", "title": "Confirm whether the job is still open", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Closeout"}]'::jsonb
-  where id = '720-waller' and subtasks = '[]'::jsonb;
+-- Subtasks exactly as the project list states them (remaining/underway
+-- work only). Applied where no subtasks were entered by hand: empty, or
+-- still carrying a previous auto-seeded set (ids like '<job>-t1').
+
+update public.jobs set subtasks = '[]'::jsonb
+  where id = '156-liberty' and (subtasks = '[]'::jsonb or subtasks @> '[{"id": "156-liberty-t1"}]'::jsonb);
+update public.jobs set subtasks = '[{"id": "62-highgate-t1", "title": "Begin cutting", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Cut"}, {"id": "62-highgate-t2", "title": "Lighting/valance coordination", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Engineering"}]'::jsonb
+  where id = '62-highgate' and (subtasks = '[]'::jsonb or subtasks @> '[{"id": "62-highgate-t1"}]'::jsonb);
+update public.jobs set subtasks = '[{"id": "495-goodman-t1", "title": "Coordinate cabinet inserts, HVAC grilles, electrical and final design details", "employee": "", "due": "", "done": false, "status": "In Progress", "state": "Engineering"}]'::jsonb
+  where id = '495-goodman' and (subtasks = '[]'::jsonb or subtasks @> '[{"id": "495-goodman-t1"}]'::jsonb);
+update public.jobs set subtasks = '[{"id": "3015-pacific-t1", "title": "Installation", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Installation"}, {"id": "3015-pacific-t2", "title": "Punch", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Punch"}, {"id": "3015-pacific-t3", "title": "Closeout", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Closeout"}]'::jsonb
+  where id = '3015-pacific' and (subtasks = '[]'::jsonb or subtasks @> '[{"id": "3015-pacific-t1"}]'::jsonb);
+update public.jobs set subtasks = '[{"id": "20-conifer-t1", "title": "Installation", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Installation"}, {"id": "20-conifer-t2", "title": "Finish coordination", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Finish Coordination"}, {"id": "20-conifer-t3", "title": "Appliance garage \u2014 held until stone installation is complete", "employee": "", "due": "", "done": false, "status": "Blocked", "state": "Installation"}]'::jsonb
+  where id = '20-conifer' and (subtasks = '[]'::jsonb or subtasks @> '[{"id": "20-conifer-t1"}]'::jsonb);
+update public.jobs set subtasks = '[{"id": "cws-158-159-t1", "title": "Procurement", "employee": "", "due": "", "done": false, "status": "In Progress", "state": "Procurement"}, {"id": "cws-158-159-t2", "title": "Fabrication", "employee": "", "due": "", "done": false, "status": "Queued", "state": "FAB"}]'::jsonb
+  where id = 'cws-158-159' and (subtasks = '[]'::jsonb or subtasks @> '[{"id": "cws-158-159-t1"}]'::jsonb);
+update public.jobs set subtasks = '[]'::jsonb
+  where id = '1525-shotwell' and (subtasks = '[]'::jsonb or subtasks @> '[{"id": "1525-shotwell-t1"}]'::jsonb);
+update public.jobs set subtasks = '[{"id": "ehsan-doors-t1", "title": "Source/quote specialty paint-grade pocket door", "employee": "", "due": "", "done": false, "status": "In Progress", "state": "Procurement"}, {"id": "ehsan-doors-t2", "title": "Add project address to PM file", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Discovery"}]'::jsonb
+  where id = 'ehsan-doors' and (subtasks = '[]'::jsonb or subtasks @> '[{"id": "ehsan-doors-t1"}]'::jsonb);
+update public.jobs set subtasks = '[{"id": "frances-howell-t1", "title": "Request final dimensions before fabrication", "employee": "", "due": "", "done": false, "status": "In Progress", "state": "Final Dimensions"}]'::jsonb
+  where id = 'frances-howell' and (subtasks = '[]'::jsonb or subtasks @> '[{"id": "frances-howell-t1"}]'::jsonb);
+update public.jobs set subtasks = '[{"id": "720-waller-t1", "title": "Verify whether any fabrication, installation, punch or billing remains", "employee": "", "due": "", "done": false, "status": "Queued", "state": "Closeout"}]'::jsonb
+  where id = '720-waller' and (subtasks = '[]'::jsonb or subtasks @> '[{"id": "720-waller-t1"}]'::jsonb);
