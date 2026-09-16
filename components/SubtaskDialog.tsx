@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { JOB_STATES, Job, JobState, Status, Subtask } from "@/lib/types";
+import { JOB_STATES_ALPHA, Job, JobState, Status, Subtask } from "@/lib/types";
 
 const inputCls = "w-full rounded-[10px] border border-line bg-[#0f151c] px-2.5 py-[9px] text-ink";
 const dateCls =
@@ -98,7 +98,7 @@ export default function SubtaskDialog({
                 value={draft.state ?? "Discovery"}
                 onChange={(e) => set("state", e.target.value as JobState)}
               >
-                {JOB_STATES.map((s) => (
+                {JOB_STATES_ALPHA.map((s) => (
                   <option key={s}>{s}</option>
                 ))}
               </select>
