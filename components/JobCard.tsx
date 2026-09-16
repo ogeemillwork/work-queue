@@ -1,6 +1,6 @@
 "use client";
 
-import { Job, JobState, Priority } from "@/lib/types";
+import { JOB_STATES, Job, JobState, Priority } from "@/lib/types";
 
 const PRIORITY_BORDER: Record<Priority, string> = {
   Urgent: "border-l-[#a855f7]",
@@ -21,53 +21,37 @@ const PRIORITY_TAG: Record<Priority, string> = {
 export const STATE_COLORS: Record<JobState, string> = {
   Discovery: "#94a3b8",
   Estimate: "#22d3ee",
-  Design: "#60a5fa",
+  Design: "#38bdf8",
+  Engineering: "#60a5fa",
   Approval: "#818cf8",
-  Production: "#a78bfa",
-  FAB: "#e879f9",
-  Cut: "#f472b6",
-  Assembly: "#fb7185",
-  Shipping: "#fb923c",
-  Pack: "#fbbf24",
-  "Check Staging": "#facc15",
+  Procurement: "#8b5cf6",
+  "Pre-Production": "#a78bfa",
+  "Final Dimensions": "#c084fc",
+  Production: "#e879f9",
+  FAB: "#f472b6",
+  Cut: "#fb7185",
+  Assembly: "#fb923c",
+  Shipping: "#fbbf24",
+  Pack: "#facc15",
+  "Check Staging": "#fde047",
   Delivered: "#a3e635",
-  Complete: "#4ade80",
+  Installation: "#4ade80",
+  "Finish Coordination": "#34d399",
+  Punch: "#2dd4bf",
+  Closeout: "#14b8a6",
+  Complete: "#22c55e",
   Adjustment: "#f87171",
 };
 
-const STATE_BORDER: Record<JobState, string> = {
-  Discovery: "border-l-[#94a3b8]",
-  Estimate: "border-l-[#22d3ee]",
-  Design: "border-l-[#60a5fa]",
-  Approval: "border-l-[#818cf8]",
-  Production: "border-l-[#a78bfa]",
-  FAB: "border-l-[#e879f9]",
-  Cut: "border-l-[#f472b6]",
-  Assembly: "border-l-[#fb7185]",
-  Shipping: "border-l-[#fb923c]",
-  Pack: "border-l-[#fbbf24]",
-  "Check Staging": "border-l-[#facc15]",
-  Delivered: "border-l-[#a3e635]",
-  Complete: "border-l-[#4ade80]",
-  Adjustment: "border-l-[#f87171]",
-};
+// A job can sit in several pipeline states at once; the earliest one in
+// pipeline order is the "primary" state used for card color and sorting.
+export function jobStates(job: Job): JobState[] {
+  return job.states?.length ? job.states : [job.state ?? "Discovery"];
+}
 
-const STATE_TAG: Record<JobState, string> = {
-  Discovery: "text-[#94a3b8]",
-  Estimate: "text-[#22d3ee]",
-  Design: "text-[#60a5fa]",
-  Approval: "text-[#818cf8]",
-  Production: "text-[#a78bfa]",
-  FAB: "text-[#e879f9]",
-  Cut: "text-[#f472b6]",
-  Assembly: "text-[#fb7185]",
-  Shipping: "text-[#fb923c]",
-  Pack: "text-[#fbbf24]",
-  "Check Staging": "text-[#facc15]",
-  Delivered: "text-[#a3e635]",
-  Complete: "text-[#4ade80]",
-  Adjustment: "text-[#f87171]",
-};
+export function primaryState(job: Job): JobState {
+  return [...jobStates(job)].sort((a, b) => JOB_STATES.indexOf(a) - JOB_STATES.indexOf(b))[0];
+}
 
 const MATERIALS_PILL: Record<string, string> = {
   Ready: "border-[#408254] text-[#8ee4a6]",
@@ -89,14 +73,15 @@ export default function JobCard({
   const done = job.subtasks.filter((s) => s.done).length;
   const total = job.subtasks.length;
   const employeeTasks = selectedEmployee ? job.subtasks.filter((s) => s.employee === selectedEmployee) : [];
-  const state: JobState = job.state ?? "Discovery";
-  const borderCls = colorBy === "state" ? STATE_BORDER[state] : PRIORITY_BORDER[job.priority];
-  const tagCls = colorBy === "state" ? STATE_TAG[state] : PRIORITY_TAG[job.priority];
-  const tagText = colorBy === "state" ? state : job.priority;
+  const byState = colorBy === "state";
+  const states = jobStates(job);
 
   return (
     <article
-      className={`mb-2.5 cursor-pointer rounded-xl border border-[#2b3743] border-l-4 bg-card p-3 shadow-card ${borderCls}`}
+      className={`mb-2.5 cursor-pointer rounded-xl border border-[#2b3743] border-l-4 bg-card p-3 shadow-card ${
+        byState ? "" : PRIORITY_BORDER[job.priority]
+      }`}
+      style={byState ? { borderLeftColor: STATE_COLORS[primaryState(job)] } : undefined}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData("text/plain", job.id);
@@ -109,11 +94,25 @@ export default function JobCard({
           <div className="font-bold leading-tight">{job.name}</div>
           <div className="mt-0.5 text-[13px] text-muted">{job.client}</div>
         </div>
-        <span
-          className={`h-fit shrink-0 rounded-full border border-current px-[6px] py-[3px] text-[10px] font-extrabold ${tagCls}`}
-        >
-          {tagText}
-        </span>
+        <div className="flex max-w-[45%] flex-wrap justify-end gap-1">
+          {byState ? (
+            states.map((s) => (
+              <span
+                key={s}
+                className="h-fit shrink-0 rounded-full border border-current px-[6px] py-[3px] text-[10px] font-extrabold"
+                style={{ color: STATE_COLORS[s] }}
+              >
+                {s}
+              </span>
+            ))
+          ) : (
+            <span
+              className={`h-fit shrink-0 rounded-full border border-current px-[6px] py-[3px] text-[10px] font-extrabold ${PRIORITY_TAG[job.priority]}`}
+            >
+              {job.priority}
+            </span>
+          )}
+        </div>
       </div>
       <div className="mb-[7px] mt-[9px] flex flex-wrap gap-[5px]">
         <span

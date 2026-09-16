@@ -10,12 +10,15 @@ export function cloneDefaults(): BoardData {
 }
 
 // "Normal" priority was renamed to "Medium", and older jobs predate the
-// pipeline state field; patch both on load.
-export function normalizeJobs<T extends { priority: string; state?: string }>(jobs: T[]): T[] {
+// pipeline states; patch both on load. Jobs can be in several states at
+// once — older data with a single `state` becomes a one-element list.
+export function normalizeJobs<T extends { priority: string; state?: string; states?: string[] }>(
+  jobs: T[]
+): T[] {
   return jobs.map((j) => ({
     ...j,
     priority: j.priority === "Normal" ? "Medium" : j.priority,
-    state: j.state ?? "Discovery",
+    states: j.states?.length ? j.states : [j.state ?? "Discovery"],
   }));
 }
 

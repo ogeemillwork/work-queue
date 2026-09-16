@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { JOB_STATES, Job, JobState, Materials, Priority, Status, Subtask } from "@/lib/types";
+import { STATE_COLORS, jobStates } from "./JobCard";
 
 type Tab = "details" | "subtasks" | "links";
 
@@ -49,6 +50,17 @@ export default function JobDialog({
     setDraft((d) => ({ ...d, [key]: value }));
   }
 
+  const draftStates = jobStates(draft);
+
+  function toggleState(s: JobState) {
+    setDraft((d) => {
+      const current = jobStates(d);
+      const next = current.includes(s) ? current.filter((x) => x !== s) : [...current, s];
+      // keep pipeline order, and never save an empty list
+      return { ...d, states: JOB_STATES.filter((x) => next.includes(x)) };
+    });
+  }
+
   function setSubtask(i: number, patch: Partial<Subtask>) {
     setDraft((d) => ({
       ...d,
@@ -77,6 +89,7 @@ export default function JobDialog({
     if (!name) return;
     onSave({
       ...draft,
+      states: draftStates.length ? draftStates : ["Discovery"],
       name,
       client: draft.client.trim(),
       clientPhone: (draft.clientPhone ?? "").trim(),
@@ -95,7 +108,7 @@ export default function JobDialog({
       ["Client email", job.clientEmail ? <a key="e" className={linkCls} href={`mailto:${job.clientEmail}`}>{job.clientEmail}</a> : "—"],
       ["Priority", job.priority],
       ["Status", job.status],
-      ["Job state", job.state ?? "Discovery"],
+      ["Job states", jobStates(job).join(" · ")],
       ["Lead", job.lead || "—"],
       ["Due date", job.due || "—"],
       ["Materials", job.materials],
@@ -277,18 +290,6 @@ export default function JobDialog({
                 </select>
               </label>
               <label className={labelCls}>
-                Job state
-                <select
-                  className={inputCls}
-                  value={draft.state ?? "Discovery"}
-                  onChange={(e) => set("state", e.target.value as JobState)}
-                >
-                  {JOB_STATES.map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-              </label>
-              <label className={labelCls}>
                 Lead
                 <select className={inputCls} value={draft.lead} onChange={(e) => set("lead", e.target.value)}>
                   {withCurrent(draft.lead).map((emp) => (
@@ -301,6 +302,29 @@ export default function JobDialog({
                 <input type="date" className={dateCls} value={draft.due} onChange={(e) => set("due", e.target.value)} />
               </label>
             </div>
+            <fieldset className={labelCls}>
+              <legend className="mb-[5px]">Job states</legend>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 rounded-[10px] border border-line bg-[#0f151c] p-2.5 sm:grid-cols-3 md:grid-cols-4">
+                {JOB_STATES.map((s) => {
+                  const checked = draftStates.includes(s);
+                  return (
+                    <label key={s} className="flex cursor-pointer items-center gap-1.5 text-[13px] font-bold">
+                      <input
+                        type="checkbox"
+                        className="accent-accent"
+                        checked={checked}
+                        onChange={() => toggleState(s)}
+                      />
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ background: STATE_COLORS[s] }}
+                      />
+                      {s}
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
             <label className={labelCls}>
               Material readiness
               <select className={inputCls} value={draft.materials} onChange={(e) => set("materials", e.target.value as Materials)}>
