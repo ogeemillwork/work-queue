@@ -61,12 +61,6 @@ export const PRIORITY_COLORS: Record<Priority, string> = {
   Low: "#5fb67a",
 };
 
-const MATERIALS_PILL: Record<string, string> = {
-  Ready: "border-[#408254] text-[#8ee4a6]",
-  Partial: "border-[#8d6c31] text-[#ebc66f]",
-  Waiting: "border-[#924949] text-[#ff9696]",
-};
-
 export default function JobCard({
   job,
   colorBy = "priority",
@@ -122,19 +116,14 @@ export default function JobCard({
           )}
         </div>
       </div>
-      <div className="mb-[7px] mt-[9px] flex flex-wrap gap-[5px]">
-        <span
-          className={`rounded-full border px-[7px] py-[3px] text-[11px] font-bold ${MATERIALS_PILL[job.materials] ?? "border-[#52606e] text-[#bcc8d4]"}`}
-        >
-          Materials: {job.materials}
-        </span>
-        {total > 0 && (
+      {total > 0 && (
+        <div className="mb-[7px] mt-[9px] flex flex-wrap gap-[5px]">
           <span className="rounded-full border border-[#52606e] px-[7px] py-[3px] text-[11px] font-bold text-[#bcc8d4]">
             {done}/{total} subtasks
           </span>
-        )}
-      </div>
-      <div className="grid gap-1 text-xs text-muted">
+        </div>
+      )}
+      <div className="mt-[9px] grid gap-1 text-xs text-muted">
         <span>
           Lead: <b className="font-bold text-[#dce3ea]">{job.lead || "—"}</b>
         </span>
