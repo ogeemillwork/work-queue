@@ -24,10 +24,7 @@ export const OGEE_DEFAULTS: BoardData = {
         "San Francisco. Large residential millwork package (~11 areas): wall bed, wellness bath/tambour work, entry bench, coat closet, fireplace bookshelves, banquette, guest wardrobe, office bath/linen, TV console, and bar. Most approval-ready items signed off. LED channel ordered; moving from engineering into production.\n\nAdditional contacts: Taylor Lightfoot — taylorlightfoot@gmail.com; Niklas Schenck — niklasschenck@gmail.com",
       dropbox: "",
       handoff: "",
-      subtasks: [
-        { id: "156-liberty-t1", title: "Finalize remaining approval items", employee: "", due: "", done: false, status: "Queued", state: "Approval" },
-        { id: "156-liberty-t2", title: "Release approved areas to production", employee: "", due: "", done: false, status: "Queued", state: "Production" },
-      ],
+      subtasks: [],
     },
     {
       id: "62-highgate",
@@ -46,8 +43,8 @@ export const OGEE_DEFAULTS: BoardData = {
       dropbox: "",
       handoff: "",
       subtasks: [
-        { id: "62-highgate-t1", title: "Begin cutting kitchen casework", employee: "", due: "", done: false, status: "Queued", state: "Cut" },
-        { id: "62-highgate-t2", title: "Coordinate lighting/valance details", employee: "", due: "", done: false, status: "Queued", state: "Engineering" },
+        { id: "62-highgate-t1", title: "Begin cutting", employee: "", due: "", done: false, status: "Queued", state: "Cut" },
+        { id: "62-highgate-t2", title: "Lighting/valance coordination", employee: "", due: "", done: false, status: "Queued", state: "Engineering" },
       ],
     },
     {
@@ -67,8 +64,7 @@ export const OGEE_DEFAULTS: BoardData = {
       dropbox: "",
       handoff: "",
       subtasks: [
-        { id: "495-goodman-t1", title: "Coordinate cabinet inserts, HVAC grilles and electrical", employee: "", due: "", done: false, status: "Queued", state: "Engineering" },
-        { id: "495-goodman-t2", title: "Finalize design details before release to production", employee: "", due: "", done: false, status: "Queued", state: "Design" },
+        { id: "495-goodman-t1", title: "Coordinate cabinet inserts, HVAC grilles, electrical and final design details", employee: "", due: "", done: false, status: "In Progress", state: "Engineering" },
       ],
     },
     {
@@ -88,9 +84,9 @@ export const OGEE_DEFAULTS: BoardData = {
       dropbox: "",
       handoff: "",
       subtasks: [
-        { id: "3015-pacific-t1", title: "Complete remaining installation items", employee: "", due: "", done: false, status: "Queued", state: "Installation" },
-        { id: "3015-pacific-t2", title: "Work the punch list", employee: "", due: "", done: false, status: "Queued", state: "Punch" },
-        { id: "3015-pacific-t3", title: "Closeout documentation", employee: "", due: "", done: false, status: "Queued", state: "Closeout" },
+        { id: "3015-pacific-t1", title: "Installation", employee: "", due: "", done: false, status: "Queued", state: "Installation" },
+        { id: "3015-pacific-t2", title: "Punch", employee: "", due: "", done: false, status: "Queued", state: "Punch" },
+        { id: "3015-pacific-t3", title: "Closeout", employee: "", due: "", done: false, status: "Queued", state: "Closeout" },
       ],
     },
     {
@@ -110,9 +106,9 @@ export const OGEE_DEFAULTS: BoardData = {
       dropbox: "",
       handoff: "",
       subtasks: [
-        { id: "20-conifer-t1", title: "Install remaining millwork", employee: "", due: "", done: false, status: "Queued", state: "Installation" },
-        { id: "20-conifer-t2", title: "Coordinate finish work with Lara's painting", employee: "", due: "", done: false, status: "Queued", state: "Finish Coordination" },
-        { id: "20-conifer-t3", title: "Install appliance garage after stone is complete", employee: "", due: "", done: false, status: "Queued", state: "Installation" },
+        { id: "20-conifer-t1", title: "Installation", employee: "", due: "", done: false, status: "Queued", state: "Installation" },
+        { id: "20-conifer-t2", title: "Finish coordination", employee: "", due: "", done: false, status: "Queued", state: "Finish Coordination" },
+        { id: "20-conifer-t3", title: "Appliance garage — held until stone installation is complete", employee: "", due: "", done: false, status: "Blocked", state: "Installation" },
       ],
     },
     {
@@ -132,8 +128,8 @@ export const OGEE_DEFAULTS: BoardData = {
       dropbox: "",
       handoff: "",
       subtasks: [
-        { id: "cws-158-159-t1", title: "Procure doors, glazing and hardware", employee: "", due: "", done: false, status: "Queued", state: "Procurement" },
-        { id: "cws-158-159-t2", title: "Begin door fabrication", employee: "", due: "", done: false, status: "Queued", state: "FAB" },
+        { id: "cws-158-159-t1", title: "Procurement", employee: "", due: "", done: false, status: "In Progress", state: "Procurement" },
+        { id: "cws-158-159-t2", title: "Fabrication", employee: "", due: "", done: false, status: "Queued", state: "FAB" },
       ],
     },
     {
@@ -152,10 +148,7 @@ export const OGEE_DEFAULTS: BoardData = {
         "San Francisco, CA 94110. Estimate #1664 — $31,780. Custom residential built-in wardrobe/cabinetry package. Design revisions and field measurements underway, including revised window treatment and transition toward maple/calibrated plywood construction with custom doors.\n\nSecondary contact: Marek — 206-855-6262.",
       dropbox: "",
       handoff: "",
-      subtasks: [
-        { id: "1525-shotwell-t1", title: "Finalize revised shop drawings", employee: "", due: "", done: false, status: "Queued", state: "Engineering" },
-        { id: "1525-shotwell-t2", title: "Confirm maple/calibrated plywood construction details", employee: "", due: "", done: false, status: "Queued", state: "Design" },
-      ],
+      subtasks: [],
     },
     {
       id: "ehsan-doors",
@@ -174,7 +167,7 @@ export const OGEE_DEFAULTS: BoardData = {
       dropbox: "",
       handoff: "",
       subtasks: [
-        { id: "ehsan-doors-t1", title: "Source specialty paint-grade pocket door", employee: "", due: "", done: false, status: "Queued", state: "Procurement" },
+        { id: "ehsan-doors-t1", title: "Source/quote specialty paint-grade pocket door", employee: "", due: "", done: false, status: "In Progress", state: "Procurement" },
         { id: "ehsan-doors-t2", title: "Add project address to PM file", employee: "", due: "", done: false, status: "Queued", state: "Discovery" },
       ],
     },
@@ -195,8 +188,7 @@ export const OGEE_DEFAULTS: BoardData = {
       dropbox: "",
       handoff: "",
       subtasks: [
-        { id: "frances-howell-t1", title: "Request final dimensions", employee: "", due: "", done: false, status: "Queued", state: "Final Dimensions" },
-        { id: "frances-howell-t2", title: "Fabricate white-oak countertop", employee: "", due: "", done: false, status: "Queued", state: "FAB" },
+        { id: "frances-howell-t1", title: "Request final dimensions before fabrication", employee: "", due: "", done: false, status: "In Progress", state: "Final Dimensions" },
       ],
     },
     {
@@ -216,7 +208,7 @@ export const OGEE_DEFAULTS: BoardData = {
       dropbox: "",
       handoff: "",
       subtasks: [
-        { id: "720-waller-t1", title: "Confirm whether the job is still open", employee: "", due: "", done: false, status: "Queued", state: "Closeout" },
+        { id: "720-waller-t1", title: "Verify whether any fabrication, installation, punch or billing remains", employee: "", due: "", done: false, status: "Queued", state: "Closeout" },
       ],
     },
   ],
