@@ -7,7 +7,7 @@ import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import ApprovalsDialog from "./ApprovalsDialog";
 import ClientsDialog from "./ClientsDialog";
 import EmployeesDialog from "./EmployeesDialog";
-import JobCard from "./JobCard";
+import JobCard, { STATE_COLORS } from "./JobCard";
 import JobDialog from "./JobDialog";
 
 function Clock() {
@@ -306,19 +306,6 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
         </div>
         <div className="flex items-center gap-2">
           <Clock />
-          {showAdminUi && (
-            <button
-              className={`rounded-[10px] border px-[11px] py-2 font-bold ${
-                adminBoard ? "border-warn bg-accent text-[#17130c]" : "border-line bg-panel2"
-              }`}
-              onClick={() => {
-                setAdminBoard((v) => !v);
-                setExpandedColumn(null);
-              }}
-            >
-              {adminBoard ? "Work Mode" : "Admin Mode"}
-            </button>
-          )}
           <div className="relative">
             <button
               className={`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-panel2 text-[15px] font-extrabold ${
@@ -390,6 +377,30 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                       }}
                     >
                       Approvals
+                    </button>
+                  )}
+                  {showAdminUi && (
+                    <button
+                      className="flex w-full items-center justify-between rounded-[10px] px-2.5 py-2 text-left text-[14px] font-bold hover:bg-panel2"
+                      role="menuitemcheckbox"
+                      aria-checked={adminBoard}
+                      onClick={() => {
+                        setAdminBoard((v) => !v);
+                        setExpandedColumn(null);
+                      }}
+                    >
+                      Admin mode
+                      <span
+                        className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors ${
+                          adminBoard ? "border-warn bg-accent" : "border-line bg-panel"
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-[2px] h-[14px] w-[14px] rounded-full transition-all ${
+                            adminBoard ? "left-[18px] bg-[#17130c]" : "left-[2px] bg-muted"
+                          }`}
+                        />
+                      </span>
                     </button>
                   )}
                   {auth?.isAdmin && (
@@ -485,6 +496,21 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
             </button>
           ))}
         </section>
+
+      {isAdminBoard && (
+        <section
+          aria-label="Job state color key"
+          className="mx-[18px] mt-[14px] flex flex-wrap items-center gap-x-3.5 gap-y-2 rounded-xl border border-line bg-panel px-3.5 py-2.5"
+        >
+          <span className="text-[11px] font-extrabold uppercase tracking-[.08em] text-muted">Job state</span>
+          {JOB_STATES.map((s) => (
+            <span key={s} className="flex items-center gap-1.5 text-[12px] font-bold text-[#dce3ea]">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: STATE_COLORS[s] }} />
+              {s}
+            </span>
+          ))}
+        </section>
+      )}
 
       <main
         className={`grid items-start gap-3.5 overflow-auto px-[18px] pb-[22px] pt-[14px] ${

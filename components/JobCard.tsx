@@ -17,6 +17,24 @@ const PRIORITY_TAG: Record<Priority, string> = {
 };
 
 // One hue per pipeline stage, walking the spectrum from Discovery to Complete.
+// Shared with the admin-mode color key on the board.
+export const STATE_COLORS: Record<JobState, string> = {
+  Discovery: "#94a3b8",
+  Estimate: "#22d3ee",
+  Design: "#60a5fa",
+  Approval: "#818cf8",
+  Production: "#a78bfa",
+  FAB: "#e879f9",
+  Cut: "#f472b6",
+  Assembly: "#fb7185",
+  Shipping: "#fb923c",
+  Pack: "#fbbf24",
+  "Check Staging": "#facc15",
+  Delivered: "#a3e635",
+  Complete: "#4ade80",
+  Adjustment: "#f87171",
+};
+
 const STATE_BORDER: Record<JobState, string> = {
   Discovery: "border-l-[#94a3b8]",
   Estimate: "border-l-[#22d3ee]",
