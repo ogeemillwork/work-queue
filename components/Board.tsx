@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { BoardAuth, BoardData, COLUMNS, JOB_STATES, Job, Priority, Status, Subtask } from "@/lib/types";
 import { cloneDefaults, loadData, normalizeJobs, saveData } from "@/lib/storage";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
@@ -83,78 +84,129 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   // take the color of their pipeline state. Work mode is the status board.
   const isAdminBoard = adminBoard && showAdminUi;
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (auth) {
-        try {
-          const res = await fetch("/api/jobs", {
-            headers: { Authorization: `Bearer ${auth.token}` },
-          });
-          if (res.status === 401) {
-            auth.signOut();
-            return;
-          }
-          if (res.ok) {
-            const body = await res.json();
-            let employees = cloneDefaults().employees;
-            const employeeEmails: Record<string, string> = {};
-            try {
-              const sb = getSupabaseBrowser();
-              if (sb) {
-                let emps = null;
-                const withEmail = await sb.from("employees").select("name,email").order("created_at");
-                if (withEmail.error) {
-                  // employees.email column not migrated yet — fall back to names only
-                  if (!cancelled) setDbEmails(false);
-                  emps = (await sb.from("employees").select("name").order("created_at")).data as
-                    | { name: string; email?: string }[]
-                    | null;
-                } else {
-                  emps = withEmail.data;
-                }
-                if (emps) {
-                  employees = emps.map((e) => e.name);
-                  for (const e of emps) if (e.email) employeeEmails[e.name] = e.email;
-                }
-              }
-            } catch {
-              // keep the default list if the employees table is unreachable
-            }
-            let clients: string[] = Array.from(
-              new Set((body.jobs as Job[]).map((j) => j.client).filter(Boolean))
-            );
-            try {
-              const sb = getSupabaseBrowser();
-              if (sb) {
-                const res2 = await sb.from("clients").select("name").order("created_at");
-                if (res2.error) {
-                  // clients table not migrated yet — derive the list from jobs
-                  if (!cancelled) setDbClients(false);
-                } else if (res2.data) {
-                  clients = Array.from(new Set([...res2.data.map((c) => c.name), ...clients]));
-                }
-              }
-            } catch {
-              // keep the derived list if the clients table is unreachable
-            }
-            if (!cancelled) {
-              setDbMode(true);
-              setData({ ...cloneDefaults(), employees, employeeEmails, clients, jobs: normalizeJobs(body.jobs) });
-            }
-            return;
-          }
-        } catch {
-          // fall through to localStorage
+  // Re-entrant board load. A sequence counter drops stale responses so
+  // realtime events and the fallback poll can call this at any time.
+  const loadSeq = useRef(0);
+  const loadBoard = useCallback(async () => {
+    const seq = ++loadSeq.current;
+    const fresh = () => seq === loadSeq.current;
+    if (auth) {
+      try {
+        const res = await fetch("/api/jobs", {
+          headers: { Authorization: `Bearer ${auth.token}` },
+        });
+        if (res.status === 401) {
+          auth.signOut();
+          return;
         }
+        if (res.ok) {
+          const body = await res.json();
+          let employees = cloneDefaults().employees;
+          const employeeEmails: Record<string, string> = {};
+          try {
+            const sb = getSupabaseBrowser();
+            if (sb) {
+              let emps = null;
+              const withEmail = await sb.from("employees").select("name,email").order("created_at");
+              if (withEmail.error) {
+                // employees.email column not migrated yet — fall back to names only
+                if (fresh()) setDbEmails(false);
+                emps = (await sb.from("employees").select("name").order("created_at")).data as
+                  | { name: string; email?: string }[]
+                  | null;
+              } else {
+                emps = withEmail.data;
+              }
+              if (emps) {
+                employees = emps.map((e) => e.name);
+                for (const e of emps) if (e.email) employeeEmails[e.name] = e.email;
+              }
+            }
+          } catch {
+            // keep the default list if the employees table is unreachable
+          }
+          let clients: string[] = Array.from(
+            new Set((body.jobs as Job[]).map((j) => j.client).filter(Boolean))
+          );
+          try {
+            const sb = getSupabaseBrowser();
+            if (sb) {
+              const res2 = await sb.from("clients").select("name").order("created_at");
+              if (res2.error) {
+                // clients table not migrated yet — derive the list from jobs
+                if (fresh()) setDbClients(false);
+              } else if (res2.data) {
+                clients = Array.from(new Set([...res2.data.map((c) => c.name), ...clients]));
+              }
+            }
+          } catch {
+            // keep the derived list if the clients table is unreachable
+          }
+          if (fresh()) {
+            setDbMode(true);
+            setData({ ...cloneDefaults(), employees, employeeEmails, clients, jobs: normalizeJobs(body.jobs) });
+          }
+          return;
+        }
+      } catch {
+        // fall through to localStorage
       }
-      if (!cancelled) setData(loadData());
-    })();
-    return () => {
-      cancelled = true;
-    };
+    }
+    if (fresh()) setData(loadData());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth?.token]);
+
+  // Load on sign-in, then keep the board live: Supabase realtime pushes a
+  // debounced reload when jobs/employees/clients change, and a slow poll
+  // covers dropped websockets on screens (like the shop TV) that sit on
+  // the page for days.
+  useEffect(() => {
+    loadBoard();
+    if (!auth) return;
+    const sb = getSupabaseBrowser();
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    const refresh = () => {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(loadBoard, 500);
+    };
+    let channel: RealtimeChannel | null = null;
+    if (sb) {
+      channel = sb
+        .channel("board-changes")
+        .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, refresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "employees" }, refresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "clients" }, refresh)
+        .subscribe();
+    }
+    const poll = setInterval(loadBoard, 60_000);
+    return () => {
+      loadSeq.current++; // drop any in-flight load
+      if (debounce) clearTimeout(debounce);
+      clearInterval(poll);
+      if (channel) sb?.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadBoard]);
+
+  // A TV that never reloads would also never pick up new deploys: check the
+  // served version every few minutes and reload the page when it changes.
+  useEffect(() => {
+    let version: string | null = null;
+    const check = async () => {
+      try {
+        const res = await fetch("/api/version");
+        if (!res.ok) return;
+        const body = await res.json();
+        if (version === null) version = body.version;
+        else if (body.version !== version) location.reload();
+      } catch {
+        // offline or blocked — try again next tick
+      }
+    };
+    check();
+    const timer = setInterval(check, 5 * 60_000);
+    return () => clearInterval(timer);
+  }, []);
 
   if (!data) return null;
 
