@@ -86,7 +86,8 @@ export function jobUpdateEmails(
 }
 
 // Fire the emails for a save. Never throws — a mail failure must not break
-// the save that triggered it.
+// the save that triggered it. Successes are logged too, so "did it send?"
+// is answerable from the function logs.
 export async function sendJobUpdateEmails(
   before: JobLike | null,
   after: JobLike,
@@ -97,14 +98,24 @@ export async function sendJobUpdateEmails(
   const from = process.env.NOTIFY_FROM_EMAIL ?? "OGEE Board <onboarding@resend.dev>";
   for (const email of jobUpdateEmails(before, after, emails)) {
     try {
-      const res = await fetch("https://api.resend.com/emails", {
+      let res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
         body: JSON.stringify({ from, to: email.to, subject: email.subject, text: email.text }),
       });
-      if (!res.ok) console.error("notify: resend error", res.status, await res.text());
+      if (res.status === 429) {
+        // Resend's free tier allows 2 requests/second — wait and retry once.
+        await new Promise((r) => setTimeout(r, 700));
+        res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+          body: JSON.stringify({ from, to: email.to, subject: email.subject, text: email.text }),
+        });
+      }
+      if (res.ok) console.log("notify: sent", email.to, "-", email.subject);
+      else console.error("notify: resend error", res.status, await res.text(), "-", email.to);
     } catch (err) {
-      console.error("notify: send failed", err);
+      console.error("notify: send failed", err, "-", email.to);
     }
   }
 }
