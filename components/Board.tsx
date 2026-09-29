@@ -395,7 +395,9 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   const jobNames = [...data.jobs.map((j) => j.name)].sort();
 
   return (
-    <div>
+    // On desktop the board fills exactly one screen: the header and filters
+    // take their natural height and the columns scroll internally.
+    <div className="min-[901px]:flex min-[901px]:h-screen min-[901px]:flex-col">
       <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-line bg-[rgba(15,20,26,.98)] px-4 py-3">
         <div>
           <h1 className="text-[21px] font-bold tracking-[.08em]">OGEE MILLWORK</h1>
@@ -619,10 +621,12 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
       )}
 
       <main
-        className={`grid items-start gap-3.5 overflow-auto px-[18px] pb-[22px] pt-[14px] ${
+        className={`grid gap-3.5 px-[18px] pb-[18px] pt-[14px] min-[901px]:min-h-0 min-[901px]:flex-1 ${
           expandedColumn
             ? "grid-cols-1"
-            : "grid-cols-[repeat(2,minmax(260px,1fr))] min-[901px]:grid-cols-[repeat(4,minmax(270px,1fr))]"
+            : isAdminBoard
+              ? "grid-cols-[repeat(2,minmax(260px,1fr))] min-[901px]:grid-cols-[repeat(4,minmax(0,1fr))]"
+              : "grid-cols-[repeat(2,minmax(260px,1fr))] min-[901px]:grid-cols-[repeat(4,minmax(0,1fr))] min-[901px]:grid-rows-[minmax(0,1fr)_auto]"
         }`}
       >
         {((expandedColumn ? [expandedColumn] : isAdminBoard ? data.priorities : COLUMNS) as string[]).map((column) => {
@@ -652,10 +656,14 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                     (a.subtask.due || "9999").localeCompare(b.subtask.due || "9999")
                 );
           const count = isAdminBoard ? jobs.length : work.length;
+          // Blocked runs as a full-width strip under the other columns.
+          const isStrip = !isAdminBoard && !expandedColumn && column === "Blocked";
           return (
             <section
               key={column}
-              className="overflow-hidden rounded-2xl border border-line bg-panel"
+              className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-line bg-panel ${
+                isStrip ? "col-span-2 min-[901px]:col-span-4" : ""
+              }`}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
@@ -681,9 +689,11 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
               </h2>
               <div
                 className={
-                  expandedColumn
-                    ? "grid min-h-[480px] items-start gap-x-2.5 p-2.5 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]"
-                    : "min-h-[480px] p-2.5"
+                  expandedColumn || isStrip
+                    ? `grid flex-1 items-start gap-x-2.5 overflow-y-auto p-2.5 grid-cols-[repeat(auto-fill,minmax(280px,1fr))] ${
+                        isStrip ? "min-h-[64px] max-h-[26vh]" : "min-h-0"
+                      }`
+                    : "min-h-[120px] flex-1 overflow-y-auto p-2.5 min-[901px]:min-h-0"
                 }
               >
                 {isAdminBoard

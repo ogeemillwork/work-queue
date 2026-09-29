@@ -95,7 +95,9 @@ export interface BoardData {
   jobs: Job[];
 }
 
-export const COLUMNS: Status[] = ["Queued", "In Progress", "Blocked", "Install", "Complete"];
+// Work board order: Blocked is last because it renders as a full-width strip
+// below the four workflow columns.
+export const COLUMNS: Status[] = ["Queued", "In Progress", "Install", "Complete", "Blocked"];
 
 export interface Profile {
   id: string;
