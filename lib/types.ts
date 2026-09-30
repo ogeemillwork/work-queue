@@ -53,6 +53,10 @@ export const JOB_STATES: JobState[] = [
 // for sorting and the color key.
 export const JOB_STATES_ALPHA: JobState[] = [...JOB_STATES].sort((a, b) => a.localeCompare(b));
 
+// The linear room pipeline, Discovery → Complete. Adjustment sits outside
+// it: an admin sends a room there by hand and it returns when done.
+export const PIPELINE: JobState[] = JOB_STATES.filter((s) => s !== "Adjustment");
+
 export type Materials = "Ready" | "Partial" | "Waiting";
 
 export interface Subtask {
@@ -65,6 +69,28 @@ export interface Subtask {
   status?: Status;
   /** Pipeline stage this piece of work belongs to. */
   state?: JobState;
+  /** Room of the job this work is for. */
+  roomId?: string;
+  /** Set when the subtask was created from a state template. */
+  templateId?: string;
+}
+
+/** A room of a job, moving through the pipeline on its own. */
+export interface Room {
+  id: string;
+  name: string;
+  state: JobState;
+  /** While in Adjustment: the state to go back to once it is done. */
+  returnState?: JobState;
+}
+
+/** A task created for a room whenever the room enters `state`. */
+export interface StateTemplate {
+  id: string;
+  state: JobState;
+  title: string;
+  employee: string;
+  sort: number;
 }
 
 export interface Job {
@@ -83,6 +109,7 @@ export interface Job {
   notes: string;
   dropbox: string;
   handoff: string;
+  rooms: Room[];
   subtasks: Subtask[];
 }
 
@@ -92,6 +119,7 @@ export interface BoardData {
   clients: string[];
   priorities: Priority[];
   statuses: Status[];
+  templates: StateTemplate[];
   jobs: Job[];
 }
 

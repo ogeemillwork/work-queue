@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { JOB_STATES_ALPHA, Job, JobState, Materials, Priority, Status, Subtask } from "@/lib/types";
-import { STATE_COLORS, deriveJobStates } from "./JobCard";
+import { JOB_STATES_ALPHA, Job, JobState, Materials, PIPELINE, Priority, StateTemplate, Status, Subtask } from "@/lib/types";
+import { newRoom, setRoomState } from "@/lib/rooms";
+import { STATE_COLORS } from "./JobCard";
 
-type Tab = "details" | "subtasks" | "links";
+type Tab = "details" | "rooms" | "subtasks" | "links";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "details", label: "Details" },
+  { id: "rooms", label: "Rooms" },
   { id: "subtasks", label: "Subtasks" },
   { id: "links", label: "Links" },
 ];
@@ -24,6 +26,7 @@ export default function JobDialog({
   employees,
   priorities,
   statuses,
+  templates,
   onSave,
   onDelete,
   onClose,
@@ -35,6 +38,7 @@ export default function JobDialog({
   employees: string[];
   priorities: Priority[];
   statuses: Status[];
+  templates: StateTemplate[];
   onSave: (job: Job) => void;
   onDelete: () => void;
   onClose: () => void;
@@ -45,7 +49,31 @@ export default function JobDialog({
   const [newTitle, setNewTitle] = useState("");
   const [newEmployee, setNewEmployee] = useState(employees[0] ?? "");
   const [newDue, setNewDue] = useState("");
-  const [newState, setNewState] = useState<JobState>("Discovery");
+  const [newState, setNewState] = useState<JobState>(job.rooms[0]?.state ?? "Discovery");
+  const [newRoomId, setNewRoomId] = useState(job.rooms[0]?.id ?? "");
+  const [newRoomName, setNewRoomName] = useState("");
+
+  const roomName = (id?: string) => draft.rooms.find((r) => r.id === id)?.name ?? "";
+
+  function addRoom() {
+    const name = newRoomName.trim();
+    if (!name) return;
+    const created = newRoom(name, templates);
+    setDraft((d) => ({ ...d, rooms: [...d.rooms, created.room], subtasks: [...d.subtasks, ...created.subtasks] }));
+    if (!newRoomId) setNewRoomId(created.room.id);
+    setNewRoomName("");
+  }
+
+  function removeRoom(id: string) {
+    const count = draft.subtasks.filter((s) => s.roomId === id).length;
+    if (!confirm(`Remove ${roomName(id)}${count ? ` and its ${count} subtask${count === 1 ? "" : "s"}` : ""}?`)) return;
+    setDraft((d) => ({
+      ...d,
+      rooms: d.rooms.filter((r) => r.id !== id),
+      subtasks: d.subtasks.filter((s) => s.roomId !== id),
+    }));
+    if (newRoomId === id) setNewRoomId(draft.rooms.find((r) => r.id !== id)?.id ?? "");
+  }
 
   function set<K extends keyof Job>(key: K, value: Job[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -73,6 +101,7 @@ export default function JobDialog({
           done: false,
           status: "Queued",
           state: newState,
+          roomId: newRoomId || undefined,
         },
       ],
     }));
@@ -109,15 +138,16 @@ export default function JobDialog({
       ["Priority", job.priority],
       ["Status", job.status],
       [
-        "Job states",
+        "Rooms",
         <span key="s" className="flex flex-wrap gap-1">
-          {deriveJobStates(job).map((s) => (
+          {job.rooms.length === 0 && "—"}
+          {job.rooms.map((r) => (
             <span
-              key={s}
+              key={r.id}
               className="rounded-full border border-current px-[6px] py-[2px] text-[10px] font-extrabold"
-              style={{ color: STATE_COLORS[s] }}
+              style={{ color: STATE_COLORS[r.state] }}
             >
-              {s}
+              {r.name} · {r.state}
             </span>
           ))}
         </span>,
@@ -174,6 +204,7 @@ export default function JobDialog({
                       {s.title}
                     </span>
                     <span className="shrink-0 text-[12px] text-muted">
+                      {job.rooms.length > 1 && roomName(s.roomId) ? `${roomName(s.roomId)} · ` : ""}
                       {s.employee}
                       {s.due ? ` · ${s.due}` : ""}
                     </span>
@@ -330,13 +361,77 @@ export default function JobDialog({
           </section>
         )}
 
+        {tab === "rooms" && (
+          <section>
+            <p className="mb-2 text-[13px] text-muted">
+              Each room moves through the pipeline on its own: once all of its subtasks for the current state are done
+              it advances, picking up the next state&apos;s template tasks. Change a room&apos;s state here to move it by hand.
+            </p>
+            {draft.rooms.length === 0 && <p className="py-2 text-[13px] text-muted">No rooms yet — add one below.</p>}
+            {draft.rooms.map((room) => {
+              const current = draft.subtasks.filter((s) => s.roomId === room.id && (s.state ?? "Discovery") === room.state);
+              return (
+                <div
+                  key={room.id}
+                  className="grid grid-cols-[1fr_auto] items-center gap-2 border-b border-line py-[9px] md:grid-cols-[1fr_190px_90px_auto]"
+                >
+                  <input
+                    className={inputCls}
+                    aria-label="Room name"
+                    value={room.name}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        rooms: d.rooms.map((r) => (r.id === room.id ? { ...r, name: e.target.value } : r)),
+                      }))
+                    }
+                  />
+                  <select
+                    className={`${inputCls} col-start-1 md:col-auto`}
+                    aria-label={`State of ${room.name}`}
+                    style={{ color: STATE_COLORS[room.state] }}
+                    value={room.state}
+                    onChange={(e) => setDraft((d) => setRoomState(d, room.id, e.target.value as JobState, templates))}
+                  >
+                    {[...PIPELINE, "Adjustment" as JobState].map((st) => (
+                      <option key={st}>{st}</option>
+                    ))}
+                  </select>
+                  <span className="col-start-1 text-[12px] text-muted md:col-auto">
+                    {current.filter((s) => s.done).length}/{current.length} done
+                  </span>
+                  <button
+                    className="col-start-2 row-start-1 rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold md:col-auto md:row-auto"
+                    aria-label={`Remove ${room.name}`}
+                    onClick={() => removeRoom(room.id)}
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
+            <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+              <input
+                className={inputCls}
+                placeholder="New room (e.g. Kitchen)"
+                value={newRoomName}
+                onChange={(e) => setNewRoomName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addRoom()}
+              />
+              <button className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold" onClick={addRoom}>
+                Add room
+              </button>
+            </div>
+          </section>
+        )}
+
         {tab === "subtasks" && (
           <section>
             <div>
               {draft.subtasks.map((s, i) => (
                 <div
                   key={s.id}
-                  className="grid grid-cols-[auto_1fr] items-center gap-2 border-b border-line py-[9px] md:grid-cols-[auto_1fr_130px_140px_125px_auto]"
+                  className="grid grid-cols-[auto_1fr] items-center gap-2 border-b border-line py-[9px] md:grid-cols-[auto_1fr_120px_120px_140px_125px_auto]"
                 >
                   <input
                     type="checkbox"
@@ -351,6 +446,19 @@ export default function JobDialog({
                     value={s.title}
                     onChange={(e) => setSubtask(i, { title: e.target.value })}
                   />
+                  <select
+                    className={`${inputCls} md:col-auto col-start-2`}
+                    aria-label="Room"
+                    value={s.roomId ?? ""}
+                    onChange={(e) => setSubtask(i, { roomId: e.target.value || undefined })}
+                  >
+                    {!s.roomId && <option value="">No room</option>}
+                    {draft.rooms.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
                   <select
                     className={`${inputCls} md:col-auto col-start-2`}
                     value={s.employee}
@@ -385,8 +493,25 @@ export default function JobDialog({
                 </div>
               ))}
             </div>
-            <div className="mt-3 grid grid-cols-[1fr_auto] gap-2 md:grid-cols-[1fr_130px_140px_125px_auto]">
+            <div className="mt-3 grid grid-cols-[1fr_auto] gap-2 md:grid-cols-[1fr_120px_120px_140px_125px_auto]">
               <input className={inputCls} placeholder="New subtask" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
+              <select
+                className={`${inputCls} col-start-1 md:col-auto`}
+                aria-label="Room for new subtask"
+                value={newRoomId}
+                onChange={(e) => {
+                  setNewRoomId(e.target.value);
+                  const room = draft.rooms.find((r) => r.id === e.target.value);
+                  if (room) setNewState(room.state);
+                }}
+              >
+                {draft.rooms.length === 0 && <option value="">No room</option>}
+                {draft.rooms.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
               <select className={`${inputCls} col-start-1 md:col-auto`} value={newEmployee} onChange={(e) => setNewEmployee(e.target.value)}>
                 {employees.map((emp) => (
                   <option key={emp}>{emp}</option>

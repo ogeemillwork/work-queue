@@ -1,5 +1,5 @@
 import { OGEE_DEFAULTS } from "./defaults";
-import { BoardData } from "./types";
+import { BoardData, Job, JobState, Room } from "./types";
 
 // v10: dropped the demo seed jobs for the real project list — a new key so
 // browsers holding the old demo data start fresh instead of resurrecting it.
@@ -11,27 +11,31 @@ export function cloneDefaults(): BoardData {
 
 // Patch older saved data on load: the "Normal" priority rename, jobs that
 // predate the pipeline state (including the short-lived multi-state list),
-// and subtasks that predate their own workflow status.
-export function normalizeJobs<
-  T extends {
-    priority: string;
-    state?: string;
-    states?: string[];
-    subtasks: { done: boolean; status?: string; state?: string }[];
-  },
->(jobs: T[]): T[] {
+// subtasks that predate their own workflow status, and jobs that predate
+// rooms — those get one "Main" room at the job's state holding every
+// subtask that has no room yet.
+type LegacyJob = Omit<Job, "rooms" | "state"> & { state?: string; states?: string[]; rooms?: Room[] };
+
+export function normalizeJobs(jobs: LegacyJob[]): Job[] {
   // the "Punch" state was folded into "Adjustment"
-  const fixState = (state?: string) => (state === "Punch" ? "Adjustment" : state);
-  return jobs.map((j) => ({
-    ...j,
-    priority: j.priority === "Normal" ? "Medium" : j.priority,
-    state: fixState(j.state ?? j.states?.[0]) ?? "Discovery",
-    subtasks: (j.subtasks ?? []).map((s) => ({
-      ...s,
-      status: s.status ?? (s.done ? "Complete" : "Queued"),
-      state: fixState(s.state ?? j.state ?? j.states?.[0]) ?? "Discovery",
-    })),
-  }));
+  const fixState = (state?: string) => (state === "Punch" ? "Adjustment" : state) as JobState | undefined;
+  return jobs.map((j) => {
+    const state = fixState(j.state ?? j.states?.[0]) ?? "Discovery";
+    const rooms: Room[] = j.rooms?.length ? j.rooms : [{ id: `${j.id}-main`, name: "Main", state }];
+    const { states: _legacy, ...rest } = j;
+    return {
+      ...rest,
+      priority: (j.priority as string) === "Normal" ? "Medium" : j.priority,
+      state,
+      rooms,
+      subtasks: (j.subtasks ?? []).map((s) => ({
+        ...s,
+        status: s.status ?? (s.done ? "Complete" : "Queued"),
+        state: fixState(s.state ?? j.state ?? j.states?.[0]) ?? "Discovery",
+        roomId: s.roomId && rooms.some((r) => r.id === s.roomId) ? s.roomId : rooms[0].id,
+      })),
+    };
+  });
 }
 
 export function loadData(): BoardData {
@@ -43,6 +47,7 @@ export function loadData(): BoardData {
     const merged: BoardData = { ...cloneDefaults(), ...parsed };
     merged.jobs = normalizeJobs(merged.jobs);
     merged.priorities = cloneDefaults().priorities;
+    merged.templates = merged.templates ?? [];
     // older saved data has no client list — build it from the jobs
     merged.clients = Array.from(
       new Set([...(merged.clients ?? []), ...merged.jobs.map((j) => j.client).filter(Boolean)])

@@ -7,6 +7,7 @@ export const OGEE_DEFAULTS: BoardData = {
   clients: [],
   priorities: ["Urgent", "High", "Medium", "Low"],
   statuses: ["Queued", "In Progress", "Blocked", "Install", "Complete"],
+  templates: [],
   jobs: [
     {
       id: "156-liberty",
@@ -24,6 +25,7 @@ export const OGEE_DEFAULTS: BoardData = {
         "San Francisco. Large residential millwork package (~11 areas): wall bed, wellness bath/tambour work, entry bench, coat closet, fireplace bookshelves, banquette, guest wardrobe, office bath/linen, TV console, and bar. Most approval-ready items signed off. LED channel ordered; moving from engineering into production.\n\nAdditional contacts: Taylor Lightfoot — taylorlightfoot@gmail.com; Niklas Schenck — niklasschenck@gmail.com",
       dropbox: "",
       handoff: "",
+      rooms: [],
       subtasks: [],
     },
     {
@@ -42,6 +44,7 @@ export const OGEE_DEFAULTS: BoardData = {
         "Kensington, CA 94707. Estimate #1661 — $47,975. Complete custom kitchen cabinetry package: painted flat-panel doors, appliance cabinetry, applied panels, specialty storage, shelving, and under-cabinet lighting details. Field measurements and revised shop drawings complete — shop ready to begin cutting; lighting/valance coordination remaining.\n\nDesigner: Tetyana Pokotylo — tetyana_p@yahoo.com. Builder: Keene Builders — Jamie Tipton / Craig Ericksen.",
       dropbox: "",
       handoff: "",
+      rooms: [],
       subtasks: [
         { id: "62-highgate-t1", title: "Begin cutting", employee: "", due: "", done: false, status: "Queued", state: "Cut" },
         { id: "62-highgate-t2", title: "Lighting/valance coordination", employee: "", due: "", done: false, status: "Queued", state: "Engineering" },
@@ -63,6 +66,7 @@ export const OGEE_DEFAULTS: BoardData = {
         "Residential cabinetry and millwork package. Updated kitchen elevations and first-floor drawings received September 14. Coordinating cabinet inserts, HVAC grilles, electrical, and final design details before release to production.\n\nGC: Highland Build — Alan Hyland (alan@highland-build.com), Morgan Cambron (office@highland-build.com), Pat Creedon (pat@highland-build.com). Designers: Erin O'Brien (erin@lexizavad.com), Lexi Zavad (lexi@lexizavad.com). Electrical: Paul White (paulwhite7629@att.net).",
       dropbox: "",
       handoff: "",
+      rooms: [],
       subtasks: [
         { id: "495-goodman-t1", title: "Coordinate cabinet inserts, HVAC grilles, electrical and final design details", employee: "", due: "", done: false, status: "In Progress", state: "Engineering" },
       ],
@@ -83,6 +87,7 @@ export const OGEE_DEFAULTS: BoardData = {
         "San Francisco. Large residential millwork: mudroom, laundry cabinetry, bathroom work, shelving, replacement doors/drawers, and miscellaneous finish items. Primary-bath mirror drawing approved September 14. Remaining work is installation, punch, and closeout.\n\nGC: Farallon Construction — Mike Krutsch (mike@farallonconstruction.com | 216-789-5809), Anthony Byrne (anthony@farallonconstruction.com), Erik Mattson (erik@farallonconstruction.com).",
       dropbox: "",
       handoff: "",
+      rooms: [],
       subtasks: [
         { id: "3015-pacific-t1", title: "Installation", employee: "", due: "", done: false, status: "Queued", state: "Installation" },
         { id: "3015-pacific-t2", title: "Punch", employee: "", due: "", done: false, status: "Queued", state: "Adjustment" },
@@ -105,6 +110,7 @@ export const OGEE_DEFAULTS: BoardData = {
         "Residential millwork: mahogany wall/baseboard work, closets, window-related work, and appliance-garage cabinetry. Appliance garage held until stone installation is complete. Remaining work is installation and finish coordination.\n\nPainting: Ulises Lara / Lara's Custom Painting — laracustompainting@gmail.com | 510-677-7893.",
       dropbox: "",
       handoff: "",
+      rooms: [],
       subtasks: [
         { id: "20-conifer-t1", title: "Installation", employee: "", due: "", done: false, status: "Queued", state: "Installation" },
         { id: "20-conifer-t2", title: "Finish coordination", employee: "", due: "", done: false, status: "Queued", state: "Finish Coordination" },
@@ -127,6 +133,7 @@ export const OGEE_DEFAULTS: BoardData = {
         "Custom commercial wood-door package with glazing, electrified mortise hardware, transfer hardware, and card-reader/security coordination. Door design/submittals approved; proceeding into procurement/fabrication.\n\nGC: CWS Construction Group — David Scott (Davids@cwsconstructiongroup.com | 831-428-9916), Charlie Slack Jr. (charliejr@cwsconstructiongroup.com), Chris Slack (chriss@cwsconstructiongroup.com). Security: Juan Gonzalez / Empower Security — juan@empowersecure.com | 408-669-9038. Glass: Cassie Harker / Alliance Glass — cassieh@allianceglasscompany.com | 650-625-9108 / 510-207-9569.",
       dropbox: "",
       handoff: "",
+      rooms: [],
       subtasks: [
         { id: "cws-158-159-t1", title: "Procurement", employee: "", due: "", done: false, status: "In Progress", state: "Procurement" },
         { id: "cws-158-159-t2", title: "Fabrication", employee: "", due: "", done: false, status: "Queued", state: "FAB" },
@@ -148,6 +155,7 @@ export const OGEE_DEFAULTS: BoardData = {
         "San Francisco, CA 94110. Estimate #1664 — $31,780. Custom residential built-in wardrobe/cabinetry package. Design revisions and field measurements underway, including revised window treatment and transition toward maple/calibrated plywood construction with custom doors.\n\nSecondary contact: Marek — 206-855-6262.",
       dropbox: "",
       handoff: "",
+      rooms: [],
       subtasks: [],
     },
     {
@@ -166,6 +174,7 @@ export const OGEE_DEFAULTS: BoardData = {
         "Custom/pre-hung residential door package being procured through Truitt & White. Main package signed off; specialty oversized paint-grade pocket door still being sourced/quoted. Project address needs to be added to the PM file.",
       dropbox: "",
       handoff: "",
+      rooms: [],
       subtasks: [
         { id: "ehsan-doors-t1", title: "Source/quote specialty paint-grade pocket door", employee: "", due: "", done: false, status: "In Progress", state: "Procurement" },
         { id: "ehsan-doors-t2", title: "Add project address to PM file", employee: "", due: "", done: false, status: "Queued", state: "Discovery" },
@@ -187,6 +196,7 @@ export const OGEE_DEFAULTS: BoardData = {
         "Estimate #1665 — $705.93. Small custom white-oak countertop/panel with mitered front edge for an existing tiled counter/sink condition. Contractor is handling pickup and installation. Final dimensions requested before fabrication.\n\nAlt email: franceskhowell@me.com.",
       dropbox: "",
       handoff: "",
+      rooms: [],
       subtasks: [
         { id: "frances-howell-t1", title: "Request final dimensions before fabrication", employee: "", due: "", done: false, status: "In Progress", state: "Final Dimensions" },
       ],
@@ -207,6 +217,7 @@ export const OGEE_DEFAULTS: BoardData = {
         "San Francisco. Custom shelving/inserts and related residential millwork. Punch/closeout — confirm whether still open: verify whether any fabrication, installation, punch, or billing remains before keeping it on the active board.",
       dropbox: "",
       handoff: "",
+      rooms: [],
       subtasks: [
         { id: "720-waller-t1", title: "Verify whether any fabrication, installation, punch or billing remains", employee: "", due: "", done: false, status: "Queued", state: "Closeout" },
       ],

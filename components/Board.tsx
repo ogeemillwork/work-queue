@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { BoardAuth, BoardData, COLUMNS, JOB_STATES, Job, Priority, Status, Subtask } from "@/lib/types";
+import { BoardAuth, BoardData, COLUMNS, JOB_STATES, Job, Priority, StateTemplate, Status, Subtask } from "@/lib/types";
+import { advanceJob, newRoom } from "@/lib/rooms";
 import { cloneDefaults, loadData, normalizeJobs, saveData } from "@/lib/storage";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import ApprovalsDialog from "./ApprovalsDialog";
@@ -11,6 +12,7 @@ import EmployeesDialog from "./EmployeesDialog";
 import JobCard, { STATE_COLORS, deriveJobStates } from "./JobCard";
 import SubtaskCard, { SUBTASK_DRAG_PREFIX } from "./SubtaskCard";
 import SubtaskDialog from "./SubtaskDialog";
+import TemplatesDialog from "./TemplatesDialog";
 import JobDialog from "./JobDialog";
 
 function Clock() {
@@ -36,7 +38,8 @@ function Clock() {
   );
 }
 
-function newJob(employees: string[], priority: Priority = "Medium"): Job {
+function newJob(employees: string[], templates: StateTemplate[], priority: Priority = "Medium"): Job {
+  const main = newRoom("Main", templates);
   return {
     id: `job-${Date.now()}`,
     name: "",
@@ -52,7 +55,8 @@ function newJob(employees: string[], priority: Priority = "Medium"): Job {
     notes: "",
     dropbox: "",
     handoff: "",
-    subtasks: [],
+    rooms: [main.room],
+    subtasks: main.subtasks,
   };
 }
 
@@ -63,6 +67,8 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
   const [showEmployees, setShowEmployees] = useState(false);
   const [showClients, setShowClients] = useState(false);
   const [dbClients, setDbClients] = useState(true);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [dbTemplates, setDbTemplates] = useState(true);
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [jobFilter, setJobFilter] = useState("");
@@ -142,9 +148,31 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           } catch {
             // keep the derived list if the clients table is unreachable
           }
+          let templates: StateTemplate[] = [];
+          try {
+            const sb = getSupabaseBrowser();
+            if (sb) {
+              const res3 = await sb.from("state_templates").select("id,state,title,employee,sort").order("sort");
+              if (res3.error) {
+                // state_templates table not migrated yet — no templates
+                if (fresh()) setDbTemplates(false);
+              } else if (res3.data) {
+                templates = res3.data as StateTemplate[];
+              }
+            }
+          } catch {
+            // no templates if the table is unreachable
+          }
           if (fresh()) {
             setDbMode(true);
-            setData({ ...cloneDefaults(), employees, employeeEmails, clients, jobs: normalizeJobs(body.jobs) });
+            setData({
+              ...cloneDefaults(),
+              employees,
+              employeeEmails,
+              clients,
+              templates,
+              jobs: normalizeJobs(body.jobs),
+            });
           }
           return;
         }
@@ -176,6 +204,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
         .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, refresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "employees" }, refresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "clients" }, refresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "state_templates" }, refresh)
         .subscribe();
     }
     const poll = setInterval(loadBoard, 60_000);
@@ -242,12 +271,18 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
     );
   }
 
+  // Every job change passes through here: rooms whose current state's work
+  // is all done advance (adding the next state's template tasks).
+  function commit(job: Job): Job {
+    return advanceJob(job, data?.templates ?? []);
+  }
+
   function moveJob(id: string, patch: Partial<Job>) {
     if (!data) return;
     let moved: Job | null = null;
     const jobs = data.jobs.map((j) => {
       if (j.id !== id) return j;
-      moved = { ...j, ...patch };
+      moved = commit({ ...j, ...patch });
       return moved;
     });
     if (!moved) return;
@@ -261,13 +296,13 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
     let moved: Job | null = null;
     const jobs = data.jobs.map((j) => {
       if (j.id !== jobId) return j;
-      moved = {
+      moved = commit({
         ...j,
         subtasks:
           next === null
             ? j.subtasks.filter((s) => s.id !== subtaskId)
             : j.subtasks.map((s) => (s.id === subtaskId ? next : s)),
-      };
+      });
       return moved;
     });
     if (!moved) return;
@@ -297,8 +332,9 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
     );
   }
 
-  function saveJob(job: Job, isNew: boolean) {
+  function saveJob(saved: Job, isNew: boolean) {
     if (!data) return;
+    const job = commit(saved);
     const jobs = isNew ? [...data.jobs, job] : data.jobs.map((j) => (j.id === job.id ? job : j));
     // a newly typed client name joins the shared client list automatically
     const clients =
@@ -334,6 +370,47 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
         ?.from("clients")
         .delete()
         .eq("name", name)
+        .then(({ error }) => error && console.error(error));
+    }
+  }
+
+  function setTemplates(templates: StateTemplate[]) {
+    if (!data) return;
+    update({ ...data, templates });
+  }
+
+  function upsertTemplate(t: StateTemplate) {
+    if (!data) return;
+    const exists = data.templates.some((x) => x.id === t.id);
+    setTemplates(exists ? data.templates.map((x) => (x.id === t.id ? t : x)) : [...data.templates, t]);
+    if (dbMode && dbTemplates) {
+      getSupabaseBrowser()
+        ?.from("state_templates")
+        .upsert(t)
+        .then(({ error }) => error && console.error(error));
+    }
+  }
+
+  function upsertTemplates(ts: StateTemplate[]) {
+    if (!data) return;
+    const byId = new Map(ts.map((t) => [t.id, t]));
+    setTemplates(data.templates.map((x) => byId.get(x.id) ?? x));
+    if (dbMode && dbTemplates) {
+      getSupabaseBrowser()
+        ?.from("state_templates")
+        .upsert(ts)
+        .then(({ error }) => error && console.error(error));
+    }
+  }
+
+  function removeTemplate(id: string) {
+    if (!data) return;
+    setTemplates(data.templates.filter((x) => x.id !== id));
+    if (dbMode && dbTemplates) {
+      getSupabaseBrowser()
+        ?.from("state_templates")
+        .delete()
+        .eq("id", id)
         .then(({ error }) => error && console.error(error));
     }
   }
@@ -441,11 +518,23 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                       className="mt-1 w-full rounded-[10px] px-2.5 py-2 text-left text-[14px] font-bold text-accent hover:bg-panel2"
                       role="menuitem"
                       onClick={() => {
-                        setEditing({ job: newJob(data.employees), isNew: true });
+                        setEditing({ job: newJob(data.employees, data.templates), isNew: true });
                         setMenuOpen(false);
                       }}
                     >
                       + Add Job
+                    </button>
+                  )}
+                  {(showAdminUi || !auth) && (
+                    <button
+                      className="mt-1 w-full rounded-[10px] px-2.5 py-2 text-left text-[14px] font-bold hover:bg-panel2"
+                      role="menuitem"
+                      onClick={() => {
+                        setShowTemplates(true);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      Task templates
                     </button>
                   )}
                   <button
@@ -718,7 +807,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                   <button
                     className="w-full rounded-xl border border-dashed border-[#3d4b5a] py-2.5 text-[15px] font-bold text-muted hover:border-accent hover:text-accent"
                     aria-label={`Add ${column} priority job`}
-                    onClick={() => setEditing({ job: newJob(data.employees, column as Priority), isNew: true })}
+                    onClick={() => setEditing({ job: newJob(data.employees, data.templates, column as Priority), isNew: true })}
                   >
                     +
                   </button>
@@ -730,6 +819,18 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
       </main>
 
       {showApprovals && auth && <ApprovalsDialog selfId={auth.userId} onClose={() => setShowApprovals(false)} />}
+
+      {showTemplates && (
+        <TemplatesDialog
+          templates={data.templates}
+          employees={data.employees}
+          onUpsert={upsertTemplate}
+          onUpsertMany={upsertTemplates}
+          onRemove={removeTemplate}
+          onClose={() => setShowTemplates(false)}
+          unsaved={dbMode && !dbTemplates}
+        />
+      )}
 
       {showClients && (
         <ClientsDialog clients={data.clients} onAdd={addClient} onRemove={removeClient} onClose={() => setShowClients(false)} />
@@ -755,6 +856,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           employees={data.employees}
           priorities={data.priorities}
           statuses={data.statuses}
+          templates={data.templates}
           onSave={(job) => saveJob(job, editing.isNew)}
           onDelete={() => deleteJob(editing.job.id)}
           onClose={() => setEditing(null)}
