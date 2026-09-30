@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
       clientPhone: client_phone ?? "",
       clientEmail: client_email ?? "",
       state: rest.state ?? "Discovery",
+      rooms: rest.rooms ?? [],
     };
   });
   return NextResponse.json({ jobs });
@@ -65,8 +66,9 @@ export async function PUT(req: NextRequest) {
     client_phone: job.clientPhone ?? "",
     client_email: job.clientEmail ?? "",
     state: job.state ?? "Discovery",
+    rooms: job.rooms ?? [],
   });
-  if (error && /client_phone|client_email|state/.test(error.message)) {
+  if (error && /client_phone|client_email|state|rooms/.test(error.message)) {
     // newer columns not migrated yet — save the rest of the job
     ({ error } = await supabase.from("jobs").upsert(row));
   }

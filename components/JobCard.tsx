@@ -1,6 +1,7 @@
 "use client";
 
-import { JOB_STATES, Job, JobState, Priority } from "@/lib/types";
+import { Job, JobState, Priority } from "@/lib/types";
+import { roomStates } from "@/lib/rooms";
 
 const PRIORITY_BORDER: Record<Priority, string> = {
   Urgent: "border-l-[#a855f7]",
@@ -42,14 +43,10 @@ export const STATE_COLORS: Record<JobState, string> = {
   Adjustment: "#f87171",
 };
 
-// A job's states are derived: the distinct pipeline states of its open
-// (not-done) subtasks, in pipeline order. With no open subtasks it falls
-// back to the job's own stored state.
+// A job's states are its rooms' states, in pipeline order. A job without
+// rooms falls back to its own stored state.
 export function deriveJobStates(job: Job): JobState[] {
-  const active = JOB_STATES.filter((st) =>
-    job.subtasks.some((s) => !s.done && (s.state ?? "Discovery") === st)
-  );
-  return active.length ? active : [job.state ?? "Discovery"];
+  return roomStates(job);
 }
 
 // Priority hues, for elements (like subtask cards) that color by the
@@ -98,15 +95,24 @@ export default function JobCard({
         </div>
         <div className="flex max-w-[45%] flex-wrap justify-end gap-1">
           {byState ? (
-            states.map((s) => (
+            job.rooms.length > 0 ? (
+              job.rooms.map((r) => (
+                <span
+                  key={r.id}
+                  className="h-fit shrink-0 rounded-full border border-current px-[6px] py-[3px] text-[10px] font-extrabold"
+                  style={{ color: STATE_COLORS[r.state] }}
+                >
+                  {job.rooms.length > 1 ? `${r.name} · ${r.state}` : r.state}
+                </span>
+              ))
+            ) : (
               <span
-                key={s}
                 className="h-fit shrink-0 rounded-full border border-current px-[6px] py-[3px] text-[10px] font-extrabold"
-                style={{ color: STATE_COLORS[s] }}
+                style={{ color: STATE_COLORS[states[0]] }}
               >
-                {s}
+                {states[0]}
               </span>
-            ))
+            )
           ) : (
             <span
               className={`h-fit shrink-0 rounded-full border border-current px-[6px] py-[3px] text-[10px] font-extrabold ${PRIORITY_TAG[job.priority]}`}

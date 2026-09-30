@@ -91,6 +91,23 @@ export default function SubtaskDialog({
             </label>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {job.rooms.length > 0 && (
+              <label className={`${labelCls} sm:col-span-2`}>
+                Room
+                <select
+                  className={inputCls}
+                  value={draft.roomId ?? ""}
+                  onChange={(e) => set("roomId", e.target.value || undefined)}
+                >
+                  {!draft.roomId && <option value="">No room</option>}
+                  {job.rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} ({r.state})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label className={labelCls}>
               Pipeline state
               <select

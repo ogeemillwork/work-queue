@@ -16,6 +16,7 @@ export default function SubtaskCard({
   subtask: Subtask;
   onOpen: () => void;
 }) {
+  const room = job.rooms.find((r) => r.id === subtask.roomId);
   return (
     <article
       className="mb-2.5 cursor-pointer rounded-xl border border-[#2b3743] border-l-4 bg-card p-3 shadow-card"
@@ -33,7 +34,10 @@ export default function SubtaskCard({
             {subtask.done ? "✓ " : ""}
             {subtask.title}
           </div>
-          <div className="mt-0.5 text-[13px] text-muted">{job.name}</div>
+          <div className="mt-0.5 text-[13px] text-muted">
+            {job.name}
+            {job.rooms.length > 1 && room ? ` · ${room.name}` : ""}
+          </div>
         </div>
         <span
           className="h-fit shrink-0 rounded-full border border-current px-[6px] py-[3px] text-[10px] font-extrabold"
