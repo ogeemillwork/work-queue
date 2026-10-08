@@ -11,13 +11,15 @@ export async function GET(req: NextRequest) {
   const { data, error } = await supabase.from("jobs").select("*").order("created_at");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   const jobs = (data ?? []).map((row: Record<string, unknown>) => {
-    const { client_phone, client_email, states: _legacyStates, ...rest } = row;
+    const { client_phone, client_email, archived_at, states: _legacyStates, ...rest } = row;
     return {
       ...rest,
       clientPhone: client_phone ?? "",
       clientEmail: client_email ?? "",
       state: rest.state ?? "Discovery",
       rooms: rest.rooms ?? [],
+      archived: rest.archived ?? false,
+      archivedAt: archived_at ?? "",
     };
   });
   return NextResponse.json({ jobs });
@@ -67,8 +69,10 @@ export async function PUT(req: NextRequest) {
     client_email: job.clientEmail ?? "",
     state: job.state ?? "Discovery",
     rooms: job.rooms ?? [],
+    archived: job.archived ?? false,
+    archived_at: job.archivedAt ?? "",
   });
-  if (error && /client_phone|client_email|state|rooms/.test(error.message)) {
+  if (error && /client_phone|client_email|state|rooms|archived/.test(error.message)) {
     // newer columns not migrated yet — save the rest of the job
     ({ error } = await supabase.from("jobs").upsert(row));
   }

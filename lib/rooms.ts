@@ -92,6 +92,19 @@ export function advanceJob(job: Job, templates: StateTemplate[]): Job {
   return syncJobState({ ...job, rooms, subtasks });
 }
 
+function allComplete(job: Job | undefined): boolean {
+  return !!job && job.rooms.length > 0 && job.rooms.every((r) => r.state === "Complete");
+}
+
+/**
+ * Archive a job at the moment its last room reaches Complete. Comparing with
+ * the previous version means a restored, already-finished job stays restored.
+ */
+export function autoArchive(previous: Job | undefined, next: Job): Job {
+  if (next.archived || allComplete(previous) || !allComplete(next)) return next;
+  return { ...next, archived: true, archivedAt: new Date().toISOString() };
+}
+
 /** Room states in pipeline order (Adjustment last), without repeats. */
 export function roomStates(job: Job): JobState[] {
   if (!job.rooms?.length) return [job.state ?? "Discovery"];
