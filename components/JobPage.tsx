@@ -30,6 +30,7 @@ export default function JobPage({
   templates,
   onSave,
   onDelete,
+  onArchive,
 }: {
   job: Job | undefined;
   canEdit: boolean;
@@ -40,6 +41,7 @@ export default function JobPage({
   templates: StateTemplate[];
   onSave: (job: Job) => void;
   onDelete: () => void;
+  onArchive: (archived: boolean) => void;
 }) {
   // `base` is the version of the job the draft started from; while the two
   // match, the draft follows live updates to the job.
@@ -77,7 +79,8 @@ export default function JobPage({
 
   function save() {
     if (!draft) return;
-    const cleaned = cleanJob(draft);
+    // archiving happens outside the draft, so keep the job's current flag
+    const cleaned = { ...cleanJob(draft), archived: job?.archived, archivedAt: job?.archivedAt };
     if (!cleaned.name) return;
     onSave(cleaned);
     setBase(cleaned);
@@ -139,6 +142,22 @@ export default function JobPage({
         )}
       </div>
 
+      {job.archived && (
+        <div className="mx-[18px] mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-line bg-panel2 px-3.5 py-2.5">
+          <span className="text-[13px] font-bold">
+            Archived{job.archivedAt ? ` ${new Date(job.archivedAt).toLocaleDateString()}` : ""} — this job is off the board.
+          </span>
+          {canEdit && (
+            <button
+              className="rounded-[10px] border border-warn bg-accent px-[11px] py-1.5 text-[14px] font-bold text-[#17130c]"
+              onClick={() => onArchive(false)}
+            >
+              Restore to board
+            </button>
+          )}
+        </div>
+      )}
+
       <main className="grid grid-cols-1 gap-3.5 px-[18px] pb-[18px] pt-[14px] min-[901px]:min-h-0 min-[901px]:flex-1 min-[901px]:grid-cols-4 min-[901px]:grid-rows-[minmax(0,1fr)]">
         {/* display:contents keeps the grid while still disabling every control for read-only viewers */}
         <fieldset disabled={!canEdit} className="contents">
@@ -161,12 +180,22 @@ export default function JobPage({
               statuses={statuses}
             />
             {canEdit && (
-              <button
-                className="mt-1 rounded-[10px] border border-[#6d3232] bg-[#3b1d1d] px-[11px] py-2 font-bold text-[#ffb8b8]"
-                onClick={onDelete}
-              >
-                Delete Job
-              </button>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {!job.archived && (
+                  <button
+                    className="rounded-[10px] border border-line bg-panel2 px-[11px] py-2 font-bold"
+                    onClick={() => onArchive(true)}
+                  >
+                    Archive Job
+                  </button>
+                )}
+                <button
+                  className="rounded-[10px] border border-[#6d3232] bg-[#3b1d1d] px-[11px] py-2 font-bold text-[#ffb8b8]"
+                  onClick={onDelete}
+                >
+                  Delete Job
+                </button>
+              </div>
             )}
           </Column>
         </fieldset>

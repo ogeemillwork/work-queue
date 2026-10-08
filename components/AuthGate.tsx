@@ -7,7 +7,7 @@ import { Profile } from "@/lib/types";
 import Board from "./Board";
 import LoginScreen from "./LoginScreen";
 
-export default function AuthGate({ jobId }: { jobId?: string } = {}) {
+export default function AuthGate({ jobId, view }: { jobId?: string; view?: "archive" } = {}) {
   const supabase = getSupabaseBrowser();
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
@@ -40,7 +40,7 @@ export default function AuthGate({ jobId }: { jobId?: string } = {}) {
   }, [supabase, userId]);
 
   // No Supabase configured: original local-only behavior, no auth.
-  if (!supabase) return <Board auth={null} jobId={jobId} />;
+  if (!supabase) return <Board auth={null} jobId={jobId} view={view} />;
 
   if (session === undefined) return null;
   if (!session) return <LoginScreen supabase={supabase} />;
@@ -71,6 +71,7 @@ export default function AuthGate({ jobId }: { jobId?: string } = {}) {
   return (
     <Board
       jobId={jobId}
+      view={view}
       auth={{
         token: session.access_token,
         userId: session.user.id,

@@ -5,6 +5,7 @@ export type Status = "Queued" | "In Progress" | "Blocked" | "Install" | "Complet
 export type JobState =
   | "Discovery"
   | "Estimate"
+  | "Payment"
   | "Design"
   | "Engineering"
   | "Approval"
@@ -28,6 +29,7 @@ export type JobState =
 export const JOB_STATES: JobState[] = [
   "Discovery",
   "Estimate",
+  "Payment",
   "Design",
   "Engineering",
   "Approval",
@@ -111,6 +113,10 @@ export interface Job {
   handoff: string;
   rooms: Room[];
   subtasks: Subtask[];
+  /** Off the board and on the archive page; set when every room finishes. */
+  archived?: boolean;
+  /** ISO timestamp of when the job was archived. */
+  archivedAt?: string;
 }
 
 export interface BoardData {

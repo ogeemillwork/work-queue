@@ -22,6 +22,7 @@ const PRIORITY_TAG: Record<Priority, string> = {
 export const STATE_COLORS: Record<JobState, string> = {
   Discovery: "#94a3b8",
   Estimate: "#22d3ee",
+  Payment: "#f59e0b",
   Design: "#38bdf8",
   Engineering: "#60a5fa",
   Approval: "#818cf8",

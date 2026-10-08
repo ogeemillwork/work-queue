@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { BoardAuth, BoardData, COLUMNS, JOB_STATES, Job, Priority, StateTemplate, Status, Subtask } from "@/lib/types";
-import { advanceJob, newRoom } from "@/lib/rooms";
+import { advanceJob, autoArchive, newRoom } from "@/lib/rooms";
+import ArchivePage from "./ArchivePage";
 import { cloneDefaults, loadData, normalizeJobs, saveData } from "@/lib/storage";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import ApprovalsDialog from "./ApprovalsDialog";
@@ -63,8 +64,17 @@ function newJob(employees: string[], templates: StateTemplate[], priority: Prior
 }
 
 // With a jobId, the board renders that job's page (/job/[id]) under the
-// same header instead of the filters and columns.
-export default function Board({ auth, jobId }: { auth: BoardAuth | null; jobId?: string }) {
+// same header instead of the filters and columns; view="archive" renders
+// the archive page (/archive) the same way.
+export default function Board({
+  auth,
+  jobId,
+  view,
+}: {
+  auth: BoardAuth | null;
+  jobId?: string;
+  view?: "archive";
+}) {
   const router = useRouter();
   const [data, setData] = useState<BoardData | null>(null);
   const [dbMode, setDbMode] = useState(false);
@@ -277,9 +287,15 @@ export default function Board({ auth, jobId }: { auth: BoardAuth | null; jobId?:
   }
 
   // Every job change passes through here: rooms whose current state's work
-  // is all done advance (adding the next state's template tasks).
+  // is all done advance (adding the next state's template tasks), and a job
+  // whose last room just finished moves to the archive.
   function commit(job: Job): Job {
-    return advanceJob(job, data?.templates ?? []);
+    const previous = data?.jobs.find((j) => j.id === job.id);
+    return autoArchive(previous, advanceJob(job, data?.templates ?? []));
+  }
+
+  function setArchived(id: string, archived: boolean) {
+    moveJob(id, archived ? { archived, archivedAt: new Date().toISOString() } : { archived, archivedAt: "" });
   }
 
   function moveJob(id: string, patch: Partial<Job>) {
@@ -475,7 +491,10 @@ export default function Board({ auth, jobId }: { auth: BoardAuth | null; jobId?:
     }
   }
 
-  const jobNames = [...data.jobs.map((j) => j.name)].sort();
+  // Archived jobs live on the archive page, not on the board.
+  const activeJobs = data.jobs.filter((j) => !j.archived);
+  const archivedJobs = data.jobs.filter((j) => j.archived);
+  const jobNames = [...activeJobs.map((j) => j.name)].sort();
 
   return (
     // On desktop the board fills exactly one screen: the header and filters
@@ -543,6 +562,17 @@ export default function Board({ auth, jobId }: { auth: BoardAuth | null; jobId?:
                       Task templates
                     </button>
                   )}
+                  <button
+                    className="mt-1 flex w-full items-center justify-between rounded-[10px] px-2.5 py-2 text-left text-[14px] font-bold hover:bg-panel2"
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      router.push("/archive");
+                    }}
+                  >
+                    Archive
+                    <span className="text-[12px] font-normal text-muted">{archivedJobs.length}</span>
+                  </button>
                   <button
                     className="mt-1 w-full rounded-[10px] px-2.5 py-2 text-left text-[14px] font-bold hover:bg-panel2"
                     role="menuitem"
@@ -649,10 +679,19 @@ export default function Board({ auth, jobId }: { auth: BoardAuth | null; jobId?:
           onDelete={() => {
             if (deleteJob(jobId)) router.push("/");
           }}
+          onArchive={(archived) => setArchived(jobId, archived)}
         />
       )}
 
-      {jobId === undefined && (
+      {view === "archive" && jobId === undefined && (
+        <ArchivePage
+          jobs={archivedJobs}
+          canEdit={showAdminUi || !auth}
+          onRestore={(id) => setArchived(id, false)}
+        />
+      )}
+
+      {jobId === undefined && view !== "archive" && (
         <>
 
       <section className="grid grid-cols-2 gap-2.5 p-[14px_18px] pb-0 min-[901px]:grid-cols-[minmax(220px,1.8fr)_repeat(2,minmax(140px,1fr))]">
@@ -725,7 +764,7 @@ export default function Board({ auth, jobId }: { auth: BoardAuth | null; jobId?:
         ))}
       </section>
 
-      {!isAdminBoard && data.jobs.every((j) => j.subtasks.length === 0) && (
+      {!isAdminBoard && activeJobs.every((j) => j.subtasks.length === 0) && (
         <p className="px-[18px] pt-[14px] text-[13px] text-muted">
           No subtasks yet — the work board shows each job&apos;s subtasks as cards.{" "}
           {showAdminUi || !auth
@@ -755,13 +794,13 @@ export default function Board({ auth, jobId }: { auth: BoardAuth | null; jobId?:
           // Admin mode: jobs by priority. Work mode: every job's subtasks,
           // as their own cards, by subtask workflow status.
           const jobs = isAdminBoard
-            ? data.jobs
+            ? activeJobs
                 .filter((j) => j.priority === column && matches(j))
                 .sort((a, b) => stateRank(a) - stateRank(b))
             : [];
           const work = isAdminBoard
             ? []
-            : data.jobs
+            : activeJobs
                 .flatMap((j) => j.subtasks.map((s) => ({ job: j, subtask: s })))
                 .filter(({ job, subtask }) => subtaskStatus(subtask) === column && matchesSubtask(job, subtask))
                 .sort(
