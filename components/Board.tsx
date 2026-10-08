@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { BoardAuth, BoardData, COLUMNS, JOB_STATES, Job, Priority, StateTemplate, Status, Subtask } from "@/lib/types";
 import { advanceJob, newRoom } from "@/lib/rooms";
@@ -14,6 +15,7 @@ import SubtaskCard, { SUBTASK_DRAG_PREFIX } from "./SubtaskCard";
 import SubtaskDialog from "./SubtaskDialog";
 import TemplatesDialog from "./TemplatesDialog";
 import JobDialog from "./JobDialog";
+import JobPage from "./JobPage";
 
 function Clock() {
   const [now, setNow] = useState<Date | null>(null);
@@ -60,7 +62,10 @@ function newJob(employees: string[], templates: StateTemplate[], priority: Prior
   };
 }
 
-export default function Board({ auth }: { auth: BoardAuth | null }) {
+// With a jobId, the board renders that job's page (/job/[id]) under the
+// same header instead of the filters and columns.
+export default function Board({ auth, jobId }: { auth: BoardAuth | null; jobId?: string }) {
+  const router = useRouter();
   const [data, setData] = useState<BoardData | null>(null);
   const [dbMode, setDbMode] = useState(false);
   const [showApprovals, setShowApprovals] = useState(false);
@@ -415,9 +420,9 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
     }
   }
 
-  function deleteJob(id: string) {
-    if (!data) return;
-    if (!confirm("Delete this job?")) return;
+  function deleteJob(id: string): boolean {
+    if (!data) return false;
+    if (!confirm("Delete this job?")) return false;
     update({ ...data, jobs: data.jobs.filter((j) => j.id !== id) });
     if (dbMode) {
       fetch(`/api/jobs?id=${encodeURIComponent(id)}`, { method: "DELETE", headers: authHeaders() }).catch(
@@ -425,6 +430,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
       );
     }
     setEditing(null);
+    return true;
   }
 
   function addEmployee(name: string, email: string) {
@@ -630,6 +636,25 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
         </div>
       </header>
 
+      {jobId !== undefined && (
+        <JobPage
+          job={data.jobs.find((j) => j.id === jobId)}
+          canEdit={showAdminUi || !auth}
+          clients={data.clients}
+          employees={data.employees}
+          priorities={data.priorities}
+          statuses={data.statuses}
+          templates={data.templates}
+          onSave={(job) => saveJob(job, false)}
+          onDelete={() => {
+            if (deleteJob(jobId)) router.push("/");
+          }}
+        />
+      )}
+
+      {jobId === undefined && (
+        <>
+
       <section className="grid grid-cols-2 gap-2.5 p-[14px_18px] pb-0 min-[901px]:grid-cols-[minmax(220px,1.8fr)_repeat(2,minmax(140px,1fr))]">
           <input
             type="search"
@@ -792,7 +817,7 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
                         job={j}
                         colorBy="state"
                         selectedEmployee={employeeFilter}
-                        onOpen={() => setEditing({ job: j, isNew: false })}
+                        onOpen={() => router.push(`/job/${encodeURIComponent(j.id)}`)}
                       />
                     ))
                   : work.map(({ job, subtask }) => (
@@ -817,6 +842,8 @@ export default function Board({ auth }: { auth: BoardAuth | null }) {
           );
         })}
       </main>
+        </>
+      )}
 
       {showApprovals && auth && <ApprovalsDialog selfId={auth.userId} onClose={() => setShowApprovals(false)} />}
 
