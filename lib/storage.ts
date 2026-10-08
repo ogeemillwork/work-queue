@@ -6,7 +6,9 @@ import { BoardData, Job, JobState, Room } from "./types";
 const STORAGE_KEY = "ogee-pma-v10-local";
 
 export function cloneDefaults(): BoardData {
-  return JSON.parse(JSON.stringify(OGEE_DEFAULTS));
+  const data: BoardData = JSON.parse(JSON.stringify(OGEE_DEFAULTS));
+  data.jobs = normalizeJobs(data.jobs);
+  return data;
 }
 
 // Patch older saved data on load: the "Normal" priority rename, jobs that
